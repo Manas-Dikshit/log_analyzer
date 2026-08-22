@@ -46,6 +46,11 @@ export function UploadCard({ onAnalyze, isAnalyzing, errorMessage }: UploadCardP
     setFile(sampleFile);
   }, []);
 
+  const analyzePasted = useCallback(() => {
+    if (!pastedText.trim()) return;
+    onAnalyze(new File([pastedText], "pasted-log.txt", { type: "text/plain" }));
+  }, [pastedText, onAnalyze]);
+
   return (
     <section id="upload" className="mx-auto max-w-3xl px-6 py-20 sm:px-10">
       <div className="mb-8 text-center">
