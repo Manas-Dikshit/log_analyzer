@@ -37,12 +37,18 @@ const SEVERITY_RANK: Record<Severity, number> = {
 const TIMESTAMP_PATTERN =
   /(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?Z?)|(\d{2}:\d{2}:\d{2})/;
 
-const COMMAND_PATTERNS = [
-  /^\$\s+\S/, // $ npm run build
-  /^❯\s*\S/, // ❯ command
-  /^PS [^>]*>\s*\S/, // PS C:\project> command
-  /^[A-Za-z]:\\[^>]*>\s*\S/, // C:\project> command
-];
+const COMMAND_PROMPT_PATTERN =
+  /^(?:\$\s+|❯\s*|PS [^>]*>\s*|[A-Za-z]:\\[^>]*>\s*|\w+@[\w.-]+:[^\s$]*\$\s+)/;
+
+function classifyLine(raw: string, lineNumber: number): ClassifiedLine {
+  const promptMatch = raw.match(COMMAND_PROMPT_PATTERN);
+  if (promptMatch) {
+    // Strip the prompt ($ / ❯ / PS ...>) but keep the command itself.
+    const command = raw.slice(promptMatch[0].length).trim();
+    if (command) {
+      return { kind: "command", raw, lineNumber, command };
+    }
+  }
 
 const STACK_FRAME_PATTERNS = [
   /^\s+at\s+\S/, // at Object.<anonymous> (file.js:12:34)
