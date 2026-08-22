@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { UploadCloud, FileText, X, Loader2, Sparkles } from "lucide-react";
+import {
+  UploadCloud,
+  FileText,
+  X,
+  Loader2,
+  Sparkles,
+  ClipboardPaste,
+} from "lucide-react";
 import { clsx } from "clsx";
 
 interface UploadCardProps {
@@ -12,6 +19,7 @@ interface UploadCardProps {
 
 export function UploadCard({ onAnalyze, isAnalyzing, errorMessage }: UploadCardProps) {
   const [file, setFile] = useState<File | null>(null);
+  const [pastedText, setPastedText] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
