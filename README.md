@@ -68,10 +68,14 @@ Open [http://localhost:3000](http://localhost:3000).
 ```text
 app/
   api/analyze/route.ts         # POST endpoint — receives a file, returns AnalysisResult JSON
+  api/analyze-terminal/route.ts # POST endpoint — receives pasted terminal output (JSON)
   page.tsx                     # Landing + upload + results, single-page flow
+  terminal/page.tsx            # Terminal Error Analyzer: paste box + results dashboard
   layout.tsx                   # Fonts, metadata
+architectures/                 # Architecture docs for both analyzers
 components/                    # Hero, upload dropzone + paste box, dashboard, detail panel, etc.
-lib/logParser.ts               # Core rule-based parsing engine + severity rules config
+lib/logParser.ts               # Log file parsing engine + severity rules config
+lib/terminalParser.ts          # Terminal output parsing engine + severity rules config
 next.config.mjs                # React strict mode; explicit Turbopack root (this project dir)
 public/sample/application.log  # Sample log used by "Try sample log"
 ```
