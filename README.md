@@ -7,6 +7,13 @@
 Upload a `.log` / `.txt` file or paste log text directly. Parsed with plain regular
 expressions — grouped, counted, and ranked by severity. No AI involved, by design.
 
+A second tool, the **Terminal Error Analyzer** ([`/terminal`](app/terminal/page.tsx)),
+does the same for pasted terminal/command output: errors, warnings, stack traces, and
+commands are detected, grouped, and ranked most-important-first.
+
+Architecture docs: [`architectures/archlog.md`](architectures/archlog.md) (Log Analyzer),
+[`architectures/archter.md`](architectures/archter.md) (Terminal Analyzer).
+
 ![Next.js](https://img.shields.io/badge/Next.js_16-black?style=for-the-badge&logo=next.js&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
