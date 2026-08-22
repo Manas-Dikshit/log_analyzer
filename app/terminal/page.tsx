@@ -9,7 +9,6 @@ import {
   ListTree,
   Layers,
   ChevronRight,
-  ChevronDown,
   RotateCcw,
   Loader2,
   Terminal,
