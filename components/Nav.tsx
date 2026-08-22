@@ -30,7 +30,7 @@ export function Nav() {
         )}
         <Link
           href="/terminal"
-          className={clsxNav(onTerminal)}
+          className={clsx(!onTerminal && "hover:opacity-60 transition-opacity")}
         >
           Terminal analyzer
         </Link>
@@ -44,10 +44,4 @@ export function Nav() {
       </Link>
     </header>
   );
-}
-
-function clsxNav(active: boolean | undefined): string {
-  return active
-    ? "font-semibold"
-    : "hover:opacity-60 transition-opacity";
 }
