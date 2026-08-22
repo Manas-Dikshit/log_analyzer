@@ -15,8 +15,7 @@ import {
   Terminal,
 } from "lucide-react";
 import { clsx } from "clsx";
-import type { TerminalAnalysisResult } from "@/lib/terminalParser";
-import type { ErrorGroup } from "@/lib/logParser";
+import type { TerminalAnalysisResult, TerminalIssue } from "@/lib/terminalParser";
 import { StatCard } from "@/components/StatCard";
 import { SeverityChip } from "@/components/SeverityChip";
 import { Nav } from "@/components/Nav";
@@ -27,7 +26,7 @@ export default function TerminalAnalyzerPage() {
   const [result, setResult] = useState<TerminalAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<ErrorGroup | null>(null);
+  const [expanded, setExpanded] = useState<TerminalIssue | null>(null);
 
   const handleAnalyze = useCallback(async () => {
     if (!text.trim()) return;
