@@ -195,13 +195,11 @@ interface ClassifiedLine {
 }
 
 function classifyLine(raw: string, lineNumber: number): ClassifiedLine {
-  const trimmedStart = raw.trimStart();
-
-  for (const p of COMMAND_PATTERNS) {
-    const m = raw.match(p);
-    if (m) {
-      // Strip the prompt ($ / ❯ / PS ...>) but keep the command itself.
-      const command = raw.slice(m[0].length).trim() || trimmedStart.trim();
+  const promptMatch = raw.match(COMMAND_PROMPT_PATTERN);
+  if (promptMatch) {
+    // Strip the prompt ($ / ❯ / PS ...>) but keep the command itself.
+    const command = raw.slice(promptMatch[0].length).trim();
+    if (command) {
       return { kind: "command", raw, lineNumber, command };
     }
   }
