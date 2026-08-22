@@ -35,6 +35,15 @@ Architecture docs: [`architectures/archlog.md`](architectures/archlog.md) (Log A
 - Detail panel per error: severity, log level, first/last occurrence, raw sample line
 - Fully responsive, keyboard-accessible, `prefers-reduced-motion` respected
 
+### Terminal Error Analyzer (`/terminal`)
+
+- Large paste box for terminal / command output with a single Analyze button
+- Rule-based detection of errors, warnings, stack-trace frames, and entered commands
+- Normalization + grouping: recurring failures collapse into one ranked issue
+- Extracted details per issue: error type, file path, line number, timestamp (when present)
+- Ranked "Most important issues" list — severity first, then occurrence count — with an
+  expandable raw sample per row
+
 ## Tech stack
 
 <div align="center">
