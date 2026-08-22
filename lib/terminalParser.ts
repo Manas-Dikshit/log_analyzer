@@ -234,12 +234,15 @@ export function analyzeTerminalOutput(content: string): TerminalAnalysisResult {
     if (classified.kind === "stack-frame") {
       stackFrameCount++;
       // Attach the frame to the most recent issue so each issue reports
-      // how deep its stack trace went.
-      const candidates = Array.from(issues.values());
-      const latest = candidates
+      // how deep its stack trace went, and inherits frame location details.
+      const latest = Array.from(issues.values())
         .filter((i) => i.lastLine < classified.lineNumber)
         .sort((a, b) => b.lastLine - a.lastLine)[0];
-      if (latest) latest.stackFrames++;
+      if (latest) {
+        latest.stackFrames++;
+        if (!latest.filePath) latest.filePath = extractFilePath(raw);
+        if (latest.lineNumber === null) latest.lineNumber = extractLineNumber(raw);
+      }
       return;
     }
 
