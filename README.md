@@ -96,6 +96,6 @@ request and never stored.
 
 <div align="center">
 
-Made by MRD with ![love](https://img.shields.io/badge/love-e63946?style=for-the-badge)
+Made by MRD with ❤️
 
 </div>
