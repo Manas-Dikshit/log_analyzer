@@ -136,6 +136,46 @@ export function UploadCard({ onAnalyze, isAnalyzing, errorMessage }: UploadCardP
         )}
       </div>
 
+      <div className="flex flex-col rounded-2xl border-2 border-dashed border-ink/40 bg-paper p-6 sm:p-8">
+        <div className="mb-4 flex items-center justify-center gap-2">
+          <ClipboardPaste size={18} />
+          <h3 className="font-display text-lg font-bold tracking-tight">Or paste log text</h3>
+        </div>
+        <textarea
+          value={pastedText}
+          onChange={(e) => setPastedText(e.target.value)}
+          disabled={isAnalyzing}
+          rows={9}
+          placeholder={"Paste logs or error output here…\ne.g. 2026-08-22 12:00:01 ERROR Payment failed: timeout"}
+          className="w-full flex-1 resize-y rounded-xl border border-ink/50 bg-paper p-4 font-mono text-[13px] leading-relaxed transition-colors placeholder:text-ink/30 focus:border-ink focus:outline-none focus:ring-2 focus:ring-lav/60 disabled:bg-ink/5"
+        />
+        <p className="mt-2 text-center text-[13px] text-ink/45">
+          Analyzed exactly like an uploaded file.
+        </p>
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            disabled={!pastedText.trim() || isAnalyzing}
+            onClick={analyzePasted}
+            className={clsx(
+              "inline-flex items-center gap-2 rounded-full border border-ink px-8 py-3.5 font-semibold shadow-hard transition-transform",
+              !pastedText.trim() || isAnalyzing
+                ? "cursor-not-allowed bg-ink/10 text-ink/40 shadow-none"
+                : "bg-ink text-paper hover:-translate-y-0.5 active:translate-y-0 active:shadow-hard-sm"
+            )}
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 size={17} className="animate-spin" /> Analyzing…
+              </>
+            ) : (
+              "Analyze Logs"
+            )}
+          </button>
+        </div>
+      </div>
+      </div>
+
       {errorMessage && (
         <p className="mt-4 rounded-lg border border-severity-critical bg-severity-criticalBg px-4 py-3 text-center text-[14px] font-medium text-severity-critical">
           {errorMessage}
