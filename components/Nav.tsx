@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ScrollText } from "lucide-react";
+import { clsx } from "clsx";
 
 export function Nav() {
   const pathname = usePathname();
