@@ -1,12 +1,14 @@
 # Logline — Error Log Analyzer (MVP)
 
-A rule-based log analyzer built with Next.js 14 (App Router) + TypeScript + Tailwind CSS.
-Upload a `.log`/`.txt` file, and it's parsed with plain regular expressions — grouped,
-counted, and ranked by severity. No AI involved, by design.
+A rule-based log analyzer built with Next.js 16 (App Router, Turbopack) + TypeScript + Tailwind CSS.
+Upload a `.log`/`.txt` file or paste log text directly, and it's parsed with plain regular
+expressions — grouped, counted, and ranked by severity. No AI involved, by design.
 
 ## Features
 
 - Drag-and-drop or click-to-upload `.log` / `.txt` files (plus a bundled sample file)
+- Paste logs or raw error text into the side-by-side paste box — analyzed through the same
+  endpoint as uploaded files
 - Server-side rule-based parsing (`lib/logParser.ts`) — log level detection, message
   normalization, grouping, and severity classification via a small, editable rules table
 - Dashboard: total lines, error/critical/warning counts, unique error count
@@ -30,8 +32,9 @@ app/
   api/analyze/route.ts   # POST endpoint — receives a file, returns AnalysisResult JSON
   page.tsx                # Landing + upload + results, single-page flow
   layout.tsx               # Fonts, metadata
-components/                # Hero, upload dropzone, dashboard, detail panel, etc.
+components/                # Hero, upload dropzone + paste box, dashboard, detail panel, etc.
 lib/logParser.ts           # Core rule-based parsing engine + severity rules config
+next.config.mjs            # React strict mode; explicit Turbopack root (this project dir)
 public/sample/application.log  # Sample log used by "Try sample log"
 ```
 
