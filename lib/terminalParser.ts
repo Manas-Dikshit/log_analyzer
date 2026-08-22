@@ -40,16 +40,6 @@ const TIMESTAMP_PATTERN =
 const COMMAND_PROMPT_PATTERN =
   /^(?:\$\s+|❯\s*|PS [^>]*>\s*|[A-Za-z]:\\[^>]*>\s*|\w+@[\w.-]+:[^\s$]*\$\s+)/;
 
-function classifyLine(raw: string, lineNumber: number): ClassifiedLine {
-  const promptMatch = raw.match(COMMAND_PROMPT_PATTERN);
-  if (promptMatch) {
-    // Strip the prompt ($ / ❯ / PS ...>) but keep the command itself.
-    const command = raw.slice(promptMatch[0].length).trim();
-    if (command) {
-      return { kind: "command", raw, lineNumber, command };
-    }
-  }
-
 const STACK_FRAME_PATTERNS = [
   /^\s+at\s+\S/, // at Object.<anonymous> (file.js:12:34)
   /^\s+File "[^"]+", line \d+/, // Python traceback frame
