@@ -5,32 +5,26 @@ Shares the visual language and `Severity` type with the Error Log Analyzer; pars
 
 ## Flow
 
-```
-Pasted terminal output
-  → POST /api/analyze-terminal (JSON { text })
-  → Validation: non-empty, size ≤ 15 MB
-  → lib/terminalParser.ts — analyzeTerminalOutput(text)
-      1. Line classification — ordered rules per line:
-           command      (prompts: $, ❯, PS>, C:\>)
-           stack frame  (at …, File "…", line N, panic frame indexes)
-           warning      (WARN/WARNING/[warn]/Warning:/npm WARN/deprecat*)
-           error        (ERROR/FATAL, TypeError|…Error:, npm ERR!, Traceback,
-                         panic:, Segmentation fault, BUILD FAILED, …)
-           other        (ignored for issues, still counted)
-      2. Detail extraction   — error type, file path, line number, timestamp
-                               (regex capture from the raw line)
-      3. Normalization       — strip timestamps, paths → <path>, hex → <addr>,
-                               numbers → #, quoted strings → "…"
-      4. Grouping            — Map keyed by kind + normalized message
-      5. Occurrence counting — per group; first/last line numbers;
-                               stack frames attached to nearest preceding issue
-      6. Severity detection  — TERMINAL_SEVERITY_RULES table (ordered
-                               pattern → severity) with kind-based fallback
-      7. Ranking             — severity first (Critical > High > Medium > Low),
-                               then occurrences desc, then first line asc
-  → TerminalAnalysisResult JSON (issues + detected commands + counters)
-  → Results UI (app/terminal/page.tsx): stat cards, commands detected,
-    ranked issue list with expandable raw sample
+```mermaid
+flowchart TD
+    A[Pasted terminal output] --> B["POST /api/analyze-terminal<br/>(JSON { text })"]
+    B --> C{Validation:<br/>non-empty · size ≤ 15 MB}
+    C -- invalid --> C1[4xx JSON error]
+    C -- valid --> D["analyzeTerminalOutput(text)<br/>lib/terminalParser.ts"]
+    D --> E{"Per-line classification<br/>(ordered rules)"}
+    E -->|command| F[Command extraction — $ / ❯ / PS> / CMD>]
+    E -->|stack frame| G[Attach to nearest preceding issue]
+    E -->|warning / error| H[Detail extraction:<br/>error type · path · line · timestamp]
+    E -->|other| Z[Counted, not grouped]
+    H --> I["Normalization —<br/>paths → &lt;path&gt; · hex → &lt;addr&gt; · numbers → #"]
+    I --> J[Grouping by kind + normalized message]
+    J --> K[Occurrence counting + first/last line]
+    K --> L["Severity detection — TERMINAL_SEVERITY_RULES<br/>(ordered pattern → severity)"]
+    L --> M[Rank: severity → occurrences → first line]
+    F --> N["TerminalAnalysisResult JSON<br/>(issues + commands + counters)"]
+    G --> N
+    M --> N
+    N --> O["Results UI — app/terminal/page.tsx<br/>(stat cards · commands · ranked issues)"]
 ```
 
 ## Key pieces
