@@ -253,9 +253,6 @@ export default function TerminalAnalyzerPage() {
               </ol>
             )}
           </div>
-
-          {expanded && null}
-          <ChevronDown className="hidden" aria-hidden />
         </section>
       )}
 
