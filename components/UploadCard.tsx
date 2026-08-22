@@ -52,7 +52,7 @@ export function UploadCard({ onAnalyze, isAnalyzing, errorMessage }: UploadCardP
   }, [pastedText, onAnalyze]);
 
   return (
-    <section id="upload" className="mx-auto max-w-3xl px-6 py-20 sm:px-10">
+    <section id="upload" className="mx-auto max-w-5xl px-6 py-20 sm:px-10">
       <div className="mb-8 text-center">
         <p className="mb-3 font-mono text-[12px] font-bold uppercase tracking-[0.18em] text-ink/45">
           Step 1 of 2
@@ -61,9 +61,12 @@ export function UploadCard({ onAnalyze, isAnalyzing, errorMessage }: UploadCardP
           Upload your application log
         </h2>
         <p className="mx-auto mt-3 max-w-md text-[15px] text-ink/60">
-          Drop a file, or try the bundled sample if you just want to see how it works.
+          Drop a file, paste raw log text, or try the bundled sample if you just want to see how it
+          works.
         </p>
       </div>
+
+      <div className="grid items-stretch gap-6 lg:grid-cols-2">
 
       <div
         onDragOver={(e) => {
