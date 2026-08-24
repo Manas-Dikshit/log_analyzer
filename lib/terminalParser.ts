@@ -111,6 +111,43 @@ function normalizeLine(raw: string): string {
   return msg.trim();
 }
 
+// Strip ANSI/VT escape sequences via tokenization (@ansi-tools/parser):
+// escape sequences are dropped, visible text (incl. newlines) is kept.
+export function stripAnsi(content: string): string {
+  let out = "";
+  for (const token of parseAnsi(content)) {
+    if (token.type === "TEXT") out += token.raw;
+  }
+  return out;
+}
+
+// Structured JS/Node stack parsing (error-stack-parser). Non-JS frames
+// (Python, Java, GDB…) yield no structured frames — regex detection still applies.
+function parseStackFrames(frames: string[]): ParsedStackFrame[] {
+  if (!frames.length) return [];
+  try {
+    return ErrorStackParser.parse({
+      name: "Error",
+      message: "",
+      stack: "\n    " + frames.join("\n    "),
+    } as Error).map((f) => ({
+      functionName: f.functionName ?? null,
+      fileName: f.fileName ?? null,
+      lineNumber: f.lineNumber ?? null,
+      columnNumber: f.columnNumber ?? null,
+      source: f.source ?? "",
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function setIssueLines(issue: TerminalIssue, raws: string[]) {
+  issue.rawLines = raws;
+  issue.normalizedLines = raws.map(stripAnsi);
+  issue.sampleRaw = raws.join("\n");
+}
+
 function matchRule(line: string) {
   for (const rule of TERMINAL_CATEGORY_RULES) {
     const match = line.match(rule.pattern);
