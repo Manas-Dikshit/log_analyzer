@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { ScrollText } from "lucide-react";
 import { clsx } from "clsx";
 
 export function Nav() {
@@ -12,8 +12,16 @@ export function Nav() {
   return (
     <header className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-6 py-6 sm:px-10">
       <Link href="/" className="flex items-center gap-2.5">
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink bg-paper shadow-hard-sm">
-          <ScrollText size={18} strokeWidth={2.25} />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-ink bg-ink shadow-hard-sm">
+          <Image
+            src="/LogLine-icon.png"
+            alt="LogLine logo"
+            width={36}
+            height={36}
+            sizes="36px"
+            className="h-full w-full object-cover"
+            priority
+          />
         </span>
         <span className="font-display text-lg font-bold tracking-tight">
           Logline
