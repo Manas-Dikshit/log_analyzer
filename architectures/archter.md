@@ -29,7 +29,7 @@ flowchart TD
 
 | Piece | Location | Role |
 |---|---|---|
-| Rule-based Pattern Library | `lib/terminalRules.ts` | Extensible rules table (`TERMINAL_CATEGORY_RULES`) for 14 error categories, regex patterns, extractors for stack frames, file paths, and line numbers. |
+| Rule-based Pattern Library | `lib/terminalRules.ts` | Extensible rules table (`TERMINAL_CATEGORY_RULES`) for 15 error categories, regex patterns, per-rule explanations, extractors for stack frames, file paths, and line numbers. |
 | Multi-line Parsing Engine | `lib/terminalParser.ts` | Multi-line block extractor (`analyzeTerminalOutput`), command context tracking, stack trace grouping, message normalization, and issue ranking. |
 | API Endpoint | `app/api/analyze-terminal/route.ts` | Request validation (15 MB limit); Node.js runtime execution. |
 | Results Dashboard | `app/terminal/page.tsx` | UI rendering stats, category chips, source file/line tags, command tags, collapsible stack trace viewer, and original terminal lines. |
@@ -37,20 +37,21 @@ flowchart TD
 
 ## Supported Categories & Detection Rules
 
-1. **Runtime Error**: Unhandled JS/TS exceptions, `TypeError`, `ReferenceError`, `SyntaxError`, `RangeError`, Rust panics.
-2. **Build / Compile**: TypeScript `TS\d+` errors, `gcc`/`clang`/`g++` compile errors, Rust `rustc[E\d+]` errors, Webpack / Vite build failures.
-3. **Package Manager**: `npm ERR!`, `yarn error`, `ERR_PNPM_`, `ERESOLVE` dependency conflicts, `ELIFECYCLE` script failures.
-4. **Python**: `Traceback (most recent call last):`, `ModuleNotFoundError`, `ImportError`, `IndentationError`, `SyntaxError`, Python runtime exceptions.
-5. **Java / Maven / Gradle**: `Exception in thread`, `java.lang.*`, `BUILD FAILED`, `Gradle build failed`, Maven `[ERROR]` goals, `ClassNotFoundException`.
-6. **Git**: `fatal: not a git repository`, `fatal: destination path`, `error: failed to push some refs`, `CONFLICT (content):` merge conflicts.
-7. **Next.js / React**: Hydration failures, `Invalid hook call`, `Fast Refresh` reloads, `ChunkLoadError`, Next.js server errors.
-8. **Docker / Container**: `Cannot connect to the Docker daemon`, `Error response from daemon`, build step failures (`failed to solve: process`), container exit codes.
-9. **Database / Connection**: `ECONNREFUSED`, `ECONNRESET`, `MongoNetworkError`, `SequelizeConnectionError`, MySQL / PostgreSQL / Redis / SQLite connection failures.
-10. **Permission / Access**: `EACCES`, `EPERM`, `Permission denied`, `403 Forbidden`, `Access denied for user`, `sudo required`.
-11. **Network / API**: `ETIMEDOUT`, `ENOTFOUND`, `getaddrinfo`, `502 Bad Gateway`, `504 Gateway Timeout`, `500 Internal Server Error`, `fetch failed`, CORS errors.
-12. **Dependency / Module**: `Cannot find module`, `Module not found`, `No module named`, `Could not find a declaration file`.
-13. **Port / Process**: `EADDRINUSE`, `address already in use`, `Segmentation fault`, `heap out of memory`, `SIGKILL`, `SIGSEGV`.
-14. **Warning / Deprecation**: `DeprecationWarning`, `ExperimentalWarning`, `npm WARN`, `Warning: React...`.
+1. **Command Error**: Unknown/not-found commands, "not recognized as a cmdlet / internal or external command" (PowerShell, CMD), npm/yarn/pnpm unknown commands, invalid or unsupported options/subcommands, missing required arguments.
+2. **Runtime Error**: Unhandled JS/TS exceptions, `TypeError`, `ReferenceError`, `SyntaxError`, `RangeError`, Rust panics.
+3. **Build / Compile**: TypeScript `TS\d+` errors, `gcc`/`clang`/`g++` compile errors, Rust `rustc[E\d+]` errors, Webpack / Vite build failures.
+4. **Package Manager**: `npm ERR!`, `yarn error`, `ERR_PNPM_`, `ERESOLVE` dependency conflicts, `ELIFECYCLE` script failures.
+5. **Python**: `Traceback (most recent call last):`, `ModuleNotFoundError`, `ImportError`, `IndentationError`, `SyntaxError`, Python runtime exceptions.
+6. **Java / Maven / Gradle**: `Exception in thread`, `java.lang.*`, `BUILD FAILED`, `Gradle build failed`, Maven `[ERROR]` goals, `ClassNotFoundException`.
+7. **Git**: `fatal: not a git repository`, `fatal: destination path`, `error: failed to push some refs`, `CONFLICT (content):` merge conflicts.
+8. **Next.js / React**: Hydration failures, `Invalid hook call`, `Fast Refresh` reloads, `ChunkLoadError`, Next.js server errors.
+9. **Docker / Container**: `Cannot connect to the Docker daemon`, `Error response from daemon`, build step failures (`failed to solve: process`), container exit codes.
+10. **Database / Connection**: `ECONNREFUSED`, `ECONNRESET`, `MongoNetworkError`, `SequelizeConnectionError`, MySQL / PostgreSQL / Redis / SQLite connection failures.
+11. **Permission / Access**: `EACCES`, `EPERM`, `Permission denied`, `403 Forbidden`, `Access denied for user`, `sudo required`.
+12. **Network / API**: `ETIMEDOUT`, `ENOTFOUND`, `getaddrinfo`, `502 Bad Gateway`, `504 Gateway Timeout`, `500 Internal Server Error`, `fetch failed`, CORS errors.
+13. **Dependency / Module**: `Cannot find module`, `Module not found`, `No module named`, `Could not find a declaration file`.
+14. **Port / Process**: `EADDRINUSE`, `address already in use`, `Segmentation fault`, `heap out of memory`, `SIGKILL`, `SIGSEGV`.
+15. **Warning / Deprecation**: `DeprecationWarning`, `ExperimentalWarning`, `npm WARN`, `Warning: React...`.
 
 ## Design Constraints & Guarantees
 
