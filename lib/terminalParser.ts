@@ -263,18 +263,18 @@ export function analyzeTerminalOutput(content: string): TerminalAnalysisResult {
           if (blockLineNumber === null) blockLineNumber = extractLineNumber(nextClean);
           j++;
         } else if (
-          nextRaw.startsWith(" ") ||
-          nextRaw.startsWith("\t") ||
+          nextClean.startsWith(" ") ||
+          nextClean.startsWith("\t") ||
           nextRaw.startsWith("|") ||
           nextRaw.startsWith(">") ||
-          nextRaw.includes("Caused by:") ||
-          nextRaw.includes("npm ERR!") ||
-          nextRaw.includes("yarn error")
+          nextClean.includes("Caused by:") ||
+          nextClean.includes("npm ERR!") ||
+          nextClean.includes("yarn error")
         ) {
           // Multi-line continuation of error message or details
           blockRawLines.push(nextRaw);
-          if (!blockFilePath) blockFilePath = extractFilePath(nextRaw);
-          if (blockLineNumber === null) blockLineNumber = extractLineNumber(nextRaw);
+          if (!blockFilePath) blockFilePath = extractFilePath(nextClean);
+          if (blockLineNumber === null) blockLineNumber = extractLineNumber(nextClean);
           j++;
         } else {
           break;
