@@ -297,7 +297,7 @@ export const TERMINAL_CATEGORY_RULES: CategoryPatternRule[] = [
     pattern: /^npm ERR!|^yarn error|^ERR_PNPM_/i,
     severity: "High",
     kind: "error",
-    extractErrorType: (line) => {
+    extractErrorType: (_m, line) => {
       const match = line.match(/npm ERR! code (\S+)|ERR_PNPM_(\S+)|^yarn error\s+(\S+)/);
       if (match) return match[1] || match[2] || match[3] || "PackageManagerError";
       return "PackageManagerError";
