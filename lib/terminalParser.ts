@@ -306,10 +306,10 @@ export function analyzeTerminalOutput(content: string): TerminalAnalysisResult {
         if (blockStackTrace.length > existingIssue.stackTrace.length) {
           existingIssue.stackTrace = blockStackTrace;
           existingIssue.stackFrames = blockStackTrace.length;
+          existingIssue.parsedStack = parseStackFrames(blockStackTrace);
         }
         if (blockRawLines.length > existingIssue.rawLines.length) {
-          existingIssue.rawLines = blockRawLines;
-          existingIssue.sampleRaw = blockRawLines.join("\n");
+          setIssueLines(existingIssue, blockRawLines);
         }
       } else {
         issuesMap.set(groupKey, {
@@ -328,9 +328,12 @@ export function analyzeTerminalOutput(content: string): TerminalAnalysisResult {
           lastLine: j,
           stackFrames: blockStackTrace.length,
           stackTrace: blockStackTrace,
-          rawLines: blockRawLines,
-          sampleRaw: blockRawLines.join("\n"),
+          parsedStack: parseStackFrames(blockStackTrace),
+          rawLines: [],
+          normalizedLines: [],
+          sampleRaw: "",
         });
+        setIssueLines(issuesMap.get(groupKey)!, blockRawLines);
       }
 
       i = j; // Advance loop past processed block
@@ -338,17 +341,17 @@ export function analyzeTerminalOutput(content: string): TerminalAnalysisResult {
     }
 
     // 3. Line is not a command and not a matching error/warning start line
-    if (isStackFrameLine(raw)) {
+    if (isStackFrameLine(text)) {
       stackFrameCount++;
       // Attach lone stack frame to previous issue if available
       const latestIssue = Array.from(issuesMap.values()).pop();
       if (latestIssue) {
         latestIssue.stackFrames++;
-        latestIssue.stackTrace.push(raw.trim());
-        latestIssue.rawLines.push(raw);
-        latestIssue.sampleRaw = latestIssue.rawLines.join("\n");
-        if (!latestIssue.filePath) latestIssue.filePath = extractFilePath(raw);
-        if (latestIssue.lineNumber === null) latestIssue.lineNumber = extractLineNumber(raw);
+        latestIssue.stackTrace.push(text.trim());
+        latestIssue.parsedStack = parseStackFrames(latestIssue.stackTrace);
+        setIssueLines(latestIssue, [...latestIssue.rawLines, raw]);
+        if (!latestIssue.filePath) latestIssue.filePath = extractFilePath(text);
+        if (latestIssue.lineNumber === null) latestIssue.lineNumber = extractLineNumber(text);
       }
     }
 
