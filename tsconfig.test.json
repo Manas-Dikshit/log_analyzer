@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "node16",
+    "moduleResolution": "node16",
+    "noEmit": false,
+    "outDir": ".test-out",
+    "incremental": false,
+    "plugins": []
+  },
+  "include": ["lib/**/*.ts", "tests/**/*.ts"]
+}
