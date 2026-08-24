@@ -258,6 +258,7 @@ export default function TerminalAnalyzerPage() {
                               {issue.timestamp && <span><strong className="text-ink">Timestamp:</strong> {issue.timestamp}</span>}
                               {issue.command && <span><strong className="text-ink">Command:</strong> ${issue.command}</span>}
                               <span><strong className="text-ink">Occurrences:</strong> {issue.occurrences.toLocaleString()}</span>
+                              {issue.explanation && <span><strong className="text-ink">Explanation:</strong> {issue.explanation}</span>}
                             </div>
 
                             {issue.stackTrace && issue.stackTrace.length > 0 && (

@@ -53,6 +53,7 @@ export interface TerminalIssue {
   message: string;
   severity: Severity;
   errorType: string | null;
+  explanation: string | null;
   filePath: string | null;
   lineNumber: number | null;
   command: string | null;
@@ -262,6 +263,7 @@ export function analyzeTerminalOutput(content: string): TerminalAnalysisResult {
           message: primaryMessage,
           severity: rule.severity,
           errorType: blockErrorType,
+          explanation: rule.explanation ?? null,
           filePath: blockFilePath,
           lineNumber: blockLineNumber,
           command: activeCommand,

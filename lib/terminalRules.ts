@@ -4,6 +4,7 @@
 import type { Severity } from "./logParser";
 
 export type TerminalCategory =
+  | "Command Error"
   | "Runtime Error"
   | "Build / Compile"
   | "Package Manager"
@@ -27,9 +28,59 @@ export interface CategoryPatternRule {
   severity: Severity;
   kind: "error" | "warning";
   extractErrorType?: (match: RegExpMatchArray, line: string) => string | null;
+  explanation?: string;
 }
 
+const COMMAND_EXPLANATION_NPM = "The entered command is not a valid npm command.";
+const COMMAND_EXPLANATION_SHELL =
+  "The entered command is not recognized by the shell or program.";
+const COMMAND_EXPLANATION_OPTION =
+  "An invalid, unsupported, or misspelled command or option was passed.";
+const COMMAND_EXPLANATION_MISSING =
+  "A required command or argument was not provided.";
+
 export const TERMINAL_CATEGORY_RULES: CategoryPatternRule[] = [
+  // 0. Command Errors — unknown/not-found commands, bad options, missing arguments
+  {
+    id: "cmd-not-recognized",
+    category: "Command Error",
+    pattern:
+      /(?:is not recognized as (?:the name of )?(?:a |an )?(?:cmdlet|internal or external command|program|batch file)|The term ['"][^'"]+['"] is not recognized|\bis not a (?:git|valid|known) command\b)/i,
+    severity: "High",
+    kind: "error",
+    extractErrorType: () => "CommandNotRecognized",
+    explanation: COMMAND_EXPLANATION_SHELL,
+  },
+  {
+    id: "cmd-unknown-command",
+    category: "Command Error",
+    pattern: /\bunknown command\b|\bcommand not found\b|\bcommand ["'][^"']+["'] not found\b/i,
+    severity: "High",
+    kind: "error",
+    extractErrorType: () => "UnknownCommand",
+    explanation: COMMAND_EXPLANATION_NPM,
+  },
+  {
+    id: "cmd-invalid-option",
+    category: "Command Error",
+    pattern:
+      /\b(?:invalid option|unknown option|unrecognized option|unsupported option|bad option|invalid (?:sub)?command|unsupported command)\b/i,
+    severity: "High",
+    kind: "error",
+    extractErrorType: () => "InvalidOptionOrCommand",
+    explanation: COMMAND_EXPLANATION_OPTION,
+  },
+  {
+    id: "cmd-missing-argument",
+    category: "Command Error",
+    pattern:
+      /\b(?:missing required argument|missing operand|missing (?:argument|parameter|command)|too few arguments|not enough arguments)\b/i,
+    severity: "High",
+    kind: "error",
+    extractErrorType: () => "MissingArgument",
+    explanation: COMMAND_EXPLANATION_MISSING,
+  },
+
   // 1. Next.js / React Errors
   {
     id: "next-react-hydration",
