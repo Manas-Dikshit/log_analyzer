@@ -15,7 +15,7 @@ flowchart TD
     E -->|command prompt| F["Track Active Command Context<br/>($ / ❯ / PS> / CMD>)"]
     E -->|pattern match| G["Category Pattern Engine<br/>lib/terminalRules.ts"]
     G --> H["Multi-line Error Block Extraction<br/>(Header + Code Frames + Stack Trace + Context)"]
-    H --> I["Detail Extraction:<br/>Category · Error Type · Path · Line · Command · Timestamp"]
+    H --> I["Detail Extraction:<br/>Category · Error Type · Explanation ·<br/>Path · Line · Command · Timestamp"]
     I --> J["Normalization —<br/>paths → &lt;path&gt; · hex → &lt;addr&gt; · numbers → #"]
     J --> K["Group by Category + Kind + ErrorType + Normalized Message"]
     K --> L["Occurrence Counting + First/Last Line + Stack Trace Array"]
