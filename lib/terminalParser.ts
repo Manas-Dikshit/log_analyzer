@@ -2,6 +2,20 @@
 // No AI. Pattern matching, regular expressions, and predefined rules only.
 
 import type { Severity } from "./logParser";
+import {
+  type TerminalCategory,
+  TERMINAL_CATEGORY_RULES,
+  COMMAND_PROMPT_PATTERN,
+  TIMESTAMP_PATTERN,
+  FILE_PATH_PATTERN,
+  extractTimestamp,
+  extractFilePath,
+  extractLineNumber,
+  isStackFrameLine,
+  isCodeFrameLine,
+} from "./terminalRules";
+
+export type { TerminalCategory };
 
 export const TERMINAL_SEVERITY_RULES: { pattern: string; severity: Severity }[] = [
   { pattern: "segmentation fault", severity: "Critical" },
@@ -33,72 +47,22 @@ const SEVERITY_RANK: Record<Severity, number> = {
   Low: 3,
 };
 
-// Matches common timestamp shapes, e.g. 2026-08-22 10:21:03 or [10:21:03] or ISO.
-const TIMESTAMP_PATTERN =
-  /(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?Z?)|(\d{2}:\d{2}:\d{2})/;
-
-const COMMAND_PROMPT_PATTERN =
-  /^(?:\$\s+|❯\s*|PS [^>]*>\s*|[A-Za-z]:\\[^>]*>\s*|\w+@[\w.-]+:[^\s$]*\$\s+)/;
-
-const STACK_FRAME_PATTERNS = [
-  /^\s+at\s+\S/, // at Object.<anonymous> (file.js:12:34)
-  /^\s+File "[^"]+", line \d+/, // Python traceback frame
-  /^\s+#[\d\s]+(?:\s+0x[\da-fA-F]+)?/m, // Go/C panic trace index
-];
-
-const ERROR_LINE_PATTERNS: RegExp[] = [
-  /\b(FATAL|CRITICAL|ERROR)\b/,
-  /^\[(?:error|ERROR)\]/,
-  /^(?:TypeError|ReferenceError|SyntaxError|RangeError|EvalError|URIError|AggregateError)\b/,
-  /^Error\b/,
-  /Error:\s/,
-  /^UnhandledPromiseRejection/,
-  /^Traceback \(most recent call last\):/,
-  /^npm ERR!/,
-  /^yarn error/,
-  /Segmentation fault/i,
-  /core dumped/i,
-  /BUILD\s+FAILED/,
-  /Compilation failed/,
-  /FAILED\s+\|/,
-  /✗|×.*failed/i,
-  /^panic:/,
-  /Exception in thread/,
-  /command not found/,
-  /is not recognized as an internal or external command/,
-];
-
-const WARNING_LINE_PATTERNS: RegExp[] = [
-  /\b(WARNING|WARN)\b/,
-  /^\[(?:warn|WARN)\]/,
-  /^Warning:\s/,
-  /^npm WARN/,
-  /deprecat/i,
-  /^\(node:\d+\) \w*Warning/,
-];
-
-const EXCEPTION_TYPE_PATTERN =
-  /\b[A-Z][A-Za-z0-9_]*(?:Error|Exception|Fault|Rejection)\b|\bSegmentation fault\b|^panic:/;
-
-const FILE_PATH_PATTERN =
-  /(?:[A-Za-z]:)?(?:[\\/][\w.@+-]+)+\.(?:ts|tsx|js|jsx|mjs|cjs|json|py|go|rb|java|php|css|scss|html|yml|yaml|log|txt|sh|sql)\b/gi;
-
-const PATH_LINENO_PATTERN = /\.(?:ts|tsx|js|jsx|mjs|cjs|json|py|go|rb|java|php|css|scss|html|yml|yaml|log|txt|sh|sql)[:](\d+)(?::\d+)?/i;
-const PYTHON_LINENO_PATTERN = /File "[^"]+", line (\d+)/;
-const ON_LINE_NUMBER_PATTERN = /\bon line (\d+)\b/i;
-
 export interface TerminalIssue {
+  category: TerminalCategory;
   kind: "error" | "warning";
   message: string;
   severity: Severity;
   errorType: string | null;
   filePath: string | null;
   lineNumber: number | null;
+  command: string | null;
   timestamp: string | null;
   occurrences: number;
   firstLine: number;
   lastLine: number;
   stackFrames: number;
+  stackTrace: string[];
+  rawLines: string[];
   sampleRaw: string;
 }
 
@@ -119,37 +83,6 @@ export interface TerminalAnalysisResult {
   processedAt: string;
 }
 
-function extractTimestamp(line: string): string | null {
-  return line.match(TIMESTAMP_PATTERN)?.[0] ?? null;
-}
-
-function extractFilePath(line: string): string | null {
-  const matches = line.match(FILE_PATH_PATTERN);
-  if (matches && matches.length > 0) {
-    // Prefer the shortest match — usually the source file, not a URL prefix.
-    return matches.sort((a, b) => a.length - b.length)[0];
-  }
-  return null;
-}
-
-function extractLineNumber(line: string): number | null {
-  const pathMatch = line.match(PATH_LINENO_PATTERN);
-  if (pathMatch) return parseInt(pathMatch[1], 10);
-  const pyMatch = line.match(PYTHON_LINENO_PATTERN);
-  if (pyMatch) return parseInt(pyMatch[1], 10);
-  const onLineMatch = line.match(ON_LINE_NUMBER_PATTERN);
-  if (onLineMatch) return parseInt(onLineMatch[1], 10);
-  return null;
-}
-
-function extractErrorType(line: string): string | null {
-  const match = line.match(EXCEPTION_TYPE_PATTERN);
-  if (match) return match[0].replace(/:$/, "");
-  const npm = line.match(/^npm ERR! (\S+)/);
-  if (npm) return `npm ${npm[1]}`;
-  return null;
-}
-
 // Strip volatile details so similar lines group together:
 // timestamps, file paths, numbers, hex addresses, quoted strings.
 function normalizeLine(raw: string): string {
@@ -164,128 +97,216 @@ function normalizeLine(raw: string): string {
   return msg.trim();
 }
 
-function classifySeverity(kind: "error" | "warning", raw: string): Severity {
-  const haystack = raw.toLowerCase();
-  for (const rule of TERMINAL_SEVERITY_RULES) {
-    if (haystack.includes(rule.pattern.toLowerCase())) return rule.severity;
-  }
-  if (kind === "error") return "High";
-  return "Medium";
-}
-
-function isStackFrame(line: string): boolean {
-  return STACK_FRAME_PATTERNS.some((p) => p.test(line));
-}
-
-interface ClassifiedLine {
-  kind: "command" | "stack-frame" | "error" | "warning" | "other";
-  raw: string;
-  lineNumber: number;
-  command?: string;
-}
-
-function classifyLine(raw: string, lineNumber: number): ClassifiedLine {
-  const promptMatch = raw.match(COMMAND_PROMPT_PATTERN);
-  if (promptMatch) {
-    // Strip the prompt ($ / ❯ / PS ...>) but keep the command itself.
-    const command = raw.slice(promptMatch[0].length).trim();
-    if (command) {
-      return { kind: "command", raw, lineNumber, command };
+function matchRule(line: string) {
+  for (const rule of TERMINAL_CATEGORY_RULES) {
+    const match = line.match(rule.pattern);
+    if (match) {
+      return { rule, match };
     }
   }
-
-  if (isStackFrame(raw)) return { kind: "stack-frame", raw, lineNumber };
-
-  if (WARNING_LINE_PATTERNS.some((p) => p.test(raw))) {
-    return { kind: "warning", raw, lineNumber };
-  }
-  if (ERROR_LINE_PATTERNS.some((p) => p.test(raw))) {
-    return { kind: "error", raw, lineNumber };
-  }
-
-  return { kind: "other", raw, lineNumber };
+  return null;
 }
 
 export function analyzeTerminalOutput(content: string): TerminalAnalysisResult {
   const lines = content.split(/\r?\n/);
-  const issues = new Map<string, TerminalIssue>();
-  const commands = new Map<string, TerminalCommand>();
+  const issuesMap = new Map<string, TerminalIssue>();
+  const commandsMap = new Map<string, TerminalCommand>();
+
   let totalLines = 0;
   let commandCount = 0;
   let errorCount = 0;
   let warningCount = 0;
   let stackFrameCount = 0;
+  let activeCommand: string | null = null;
 
-  lines.forEach((raw, idx) => {
-    if (!raw.trim()) return;
+  let i = 0;
+  while (i < lines.length) {
+    const raw = lines[i];
+    const lineNumber = i + 1;
+
+    if (!raw.trim()) {
+      i++;
+      continue;
+    }
     totalLines++;
 
-    const classified = classifyLine(raw, idx + 1);
-
-    if (classified.kind === "command") {
-      commandCount++;
-      const cmd = classified.command!;
-      const existing = commands.get(cmd);
-      if (existing) existing.occurrences++;
-      else commands.set(cmd, { command: cmd, occurrences: 1 });
-      return;
-    }
-
-    if (classified.kind === "stack-frame") {
-      stackFrameCount++;
-      // Attach the frame to the most recent issue so each issue reports
-      // how deep its stack trace went, and inherits frame location details.
-      const latest = Array.from(issues.values())
-        .filter((i) => i.lastLine < classified.lineNumber)
-        .sort((a, b) => b.lastLine - a.lastLine)[0];
-      if (latest) {
-        latest.stackFrames++;
-        if (!latest.filePath) latest.filePath = extractFilePath(raw);
-        if (latest.lineNumber === null) latest.lineNumber = extractLineNumber(raw);
+    // 1. Check for command prompt lines ($ / ❯ / PS> / CMD>)
+    const promptMatch = raw.match(COMMAND_PROMPT_PATTERN);
+    if (promptMatch) {
+      const commandText = raw.slice(promptMatch[0].length).trim();
+      if (commandText) {
+        commandCount++;
+        activeCommand = commandText;
+        const existingCmd = commandsMap.get(commandText);
+        if (existingCmd) {
+          existingCmd.occurrences++;
+        } else {
+          commandsMap.set(commandText, { command: commandText, occurrences: 1 });
+        }
+        i++;
+        continue;
       }
-      return;
     }
 
-    if (classified.kind !== "error" && classified.kind !== "warning") return;
+    // 2. Check for matching error / warning pattern
+    const ruleMatch = matchRule(raw);
+    if (ruleMatch) {
+      const { rule, match } = ruleMatch;
+      const blockRawLines: string[] = [raw];
+      const blockStackTrace: string[] = [];
+      let blockFilePath = extractFilePath(raw);
+      let blockLineNumber = extractLineNumber(raw);
+      const blockTimestamp = extractTimestamp(raw);
+      let blockErrorType = rule.extractErrorType ? rule.extractErrorType(match, raw) : null;
+      let primaryMessage = raw.trim();
 
-    if (classified.kind === "error") errorCount++;
-    else warningCount++;
+      // Look ahead to capture multi-line context, stack traces, and code frames
+      let j = i + 1;
+      while (j < lines.length) {
+        const nextRaw = lines[j];
+        if (!nextRaw.trim()) {
+          // Allow single blank line inside stack trace if next line continues stack frame
+          if (j + 1 < lines.length && (isStackFrameLine(lines[j + 1]) || isCodeFrameLine(lines[j + 1]))) {
+            blockRawLines.push(nextRaw);
+            j++;
+            continue;
+          }
+          break;
+        }
 
-    const normalized = normalizeLine(raw);
-    const key = `${classified.kind}::${normalized.toLowerCase()}`;
-    const timestamp = extractTimestamp(raw);
+        // Stop if a new command or another error header is encountered
+        if (nextRaw.match(COMMAND_PROMPT_PATTERN)) break;
+        if (matchRule(nextRaw) && !isStackFrameLine(nextRaw) && !isCodeFrameLine(nextRaw)) {
+          // If Python Traceback started, allow continuing until the final Exception line
+          if (rule.category === "Python" && rule.id === "python-traceback-start") {
+            const excMatch = nextRaw.match(/^[A-Za-z_]\w*(?:Error|Exception|Warning):\s*(.*)/);
+            if (excMatch) {
+              blockRawLines.push(nextRaw);
+              primaryMessage = nextRaw.trim();
+              if (!blockErrorType || blockErrorType === "Traceback") {
+                blockErrorType = nextRaw.split(":")[0].trim();
+              }
+              j++;
+              break;
+            }
+          } else {
+            break;
+          }
+        }
 
-    const existing = issues.get(key);
-    if (existing) {
-      existing.occurrences++;
-      existing.lastLine = classified.lineNumber;
-      if (!existing.timestamp && timestamp) existing.timestamp = timestamp;
-    } else {
-      issues.set(key, {
-        kind: classified.kind,
-        message: normalized || raw.trim(),
-        severity: classifySeverity(classified.kind, raw),
-        errorType: extractErrorType(raw),
-        filePath: extractFilePath(raw),
-        lineNumber: extractLineNumber(raw),
-        timestamp,
-        occurrences: 1,
-        firstLine: classified.lineNumber,
-        lastLine: classified.lineNumber,
-        stackFrames: 0,
-        sampleRaw: raw.trim(),
-      });
+        if (isStackFrameLine(nextRaw)) {
+          stackFrameCount++;
+          blockStackTrace.push(nextRaw.trim());
+          blockRawLines.push(nextRaw);
+          if (!blockFilePath) blockFilePath = extractFilePath(nextRaw);
+          if (blockLineNumber === null) blockLineNumber = extractLineNumber(nextRaw);
+          j++;
+        } else if (isCodeFrameLine(nextRaw)) {
+          blockRawLines.push(nextRaw);
+          if (!blockFilePath) blockFilePath = extractFilePath(nextRaw);
+          if (blockLineNumber === null) blockLineNumber = extractLineNumber(nextRaw);
+          j++;
+        } else if (
+          nextRaw.startsWith(" ") ||
+          nextRaw.startsWith("\t") ||
+          nextRaw.startsWith("|") ||
+          nextRaw.startsWith(">") ||
+          nextRaw.includes("Caused by:") ||
+          nextRaw.includes("npm ERR!") ||
+          nextRaw.includes("yarn error")
+        ) {
+          // Multi-line continuation of error message or details
+          blockRawLines.push(nextRaw);
+          if (!blockFilePath) blockFilePath = extractFilePath(nextRaw);
+          if (blockLineNumber === null) blockLineNumber = extractLineNumber(nextRaw);
+          j++;
+        } else {
+          break;
+        }
+      }
+
+      if (rule.kind === "error") {
+        errorCount++;
+      } else {
+        warningCount++;
+      }
+
+      const normalizedMsg = normalizeLine(primaryMessage);
+      const groupKey = `${rule.category}::${rule.kind}::${blockErrorType || ""}::${normalizedMsg.toLowerCase()}`;
+
+      const existingIssue = issuesMap.get(groupKey);
+      if (existingIssue) {
+        existingIssue.occurrences++;
+        existingIssue.lastLine = j;
+        if (!existingIssue.timestamp && blockTimestamp) {
+          existingIssue.timestamp = blockTimestamp;
+        }
+        if (!existingIssue.filePath && blockFilePath) {
+          existingIssue.filePath = blockFilePath;
+        }
+        if (existingIssue.lineNumber === null && blockLineNumber !== null) {
+          existingIssue.lineNumber = blockLineNumber;
+        }
+        if (blockStackTrace.length > existingIssue.stackTrace.length) {
+          existingIssue.stackTrace = blockStackTrace;
+          existingIssue.stackFrames = blockStackTrace.length;
+        }
+        if (blockRawLines.length > existingIssue.rawLines.length) {
+          existingIssue.rawLines = blockRawLines;
+          existingIssue.sampleRaw = blockRawLines.join("\n");
+        }
+      } else {
+        issuesMap.set(groupKey, {
+          category: rule.category,
+          kind: rule.kind,
+          message: primaryMessage,
+          severity: rule.severity,
+          errorType: blockErrorType,
+          filePath: blockFilePath,
+          lineNumber: blockLineNumber,
+          command: activeCommand,
+          timestamp: blockTimestamp,
+          occurrences: 1,
+          firstLine: lineNumber,
+          lastLine: j,
+          stackFrames: blockStackTrace.length,
+          stackTrace: blockStackTrace,
+          rawLines: blockRawLines,
+          sampleRaw: blockRawLines.join("\n"),
+        });
+      }
+
+      i = j; // Advance loop past processed block
+      continue;
     }
+
+    // 3. Line is not a command and not a matching error/warning start line
+    if (isStackFrameLine(raw)) {
+      stackFrameCount++;
+      // Attach lone stack frame to previous issue if available
+      const latestIssue = Array.from(issuesMap.values()).pop();
+      if (latestIssue) {
+        latestIssue.stackFrames++;
+        latestIssue.stackTrace.push(raw.trim());
+        latestIssue.rawLines.push(raw);
+        latestIssue.sampleRaw = latestIssue.rawLines.join("\n");
+        if (!latestIssue.filePath) latestIssue.filePath = extractFilePath(raw);
+        if (latestIssue.lineNumber === null) latestIssue.lineNumber = extractLineNumber(raw);
+      }
+    }
+
+    i++;
+  }
+
+  const sortedIssues = Array.from(issuesMap.values()).sort((a, b) => {
+    const sevDiff = SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity];
+    if (sevDiff !== 0) return sevDiff;
+    const occDiff = b.occurrences - a.occurrences;
+    if (occDiff !== 0) return occDiff;
+    return a.firstLine - b.firstLine;
   });
 
-  const sortedIssues = Array.from(issues.values()).sort(
-    (a, b) =>
-      SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] ||
-      b.occurrences - a.occurrences ||
-      a.firstLine - b.firstLine
-  );
-
-  const sortedCommands = Array.from(commands.values()).sort(
+  const sortedCommands = Array.from(commandsMap.values()).sort(
     (a, b) => b.occurrences - a.occurrences
   );
 
