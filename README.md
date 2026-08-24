@@ -38,11 +38,22 @@ Architecture docs: [`architectures/archlog.md`](architectures/archlog.md) (Log A
 ### Terminal Error Analyzer (`/terminal`)
 
 - Large paste box for terminal / command output with a single Analyze button
+- ANSI/VT normalization first: pasted escape sequences (colors, cursor/title
+  controls) are tokenized and stripped with [`@ansi-tools/parser`](https://www.npmjs.com/package/@ansi-tools/parser)
+  before detection — original lines are preserved verbatim alongside the
+  normalized ones so every match can be verified
 - Rule-based detection of errors, warnings, stack-trace frames, and entered commands
+  (npm/pnpm/yarn, Git, Python, Node.js, Next.js, Java/Maven/Gradle, Docker, databases,
+  network, permissions, build errors, command errors)
+- JavaScript/Node stack traces are additionally parsed into structured frames
+  (function · file · line · column) via [`error-stack-parser`](https://www.npmjs.com/package/error-stack-parser);
+  non-JS traces (Python, Java, GDB…) fall back to regex frame detection
 - Normalization + grouping: recurring failures collapse into one ranked issue
 - Extracted details per issue: error type, file path, line number, timestamp (when present)
 - Ranked "Most important issues" list — severity first, then occurrence count — with an
-  expandable raw sample per row
+  expandable detail view per row: structured frames, normalized lines, and raw terminal lines
+
+Both analyzers are fully rule-based — no AI and no external APIs.
 
 ## Tech stack
 

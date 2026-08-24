@@ -63,6 +63,8 @@ flowchart TD
 ## Design Constraints & Guarantees
 
 - **Stateless & Deterministic**: Terminal output is analyzed strictly in-memory during request handling and never stored.
-- **No AI / External API Dependencies**: 100% offline rule-based regex parsing.
+- **No AI / External API Dependencies**: 100% offline parsing. The two adopted libraries (`@ansi-tools/parser`, `error-stack-parser`) are local, deterministic regex/tokenizer packages — no network calls, no AI.
+- **Original + Normalized Side by Side**: Raw pasted lines (including ANSI codes) are preserved verbatim per issue (`rawLines`); the ANSI/VT-stripped counterparts used for detection are kept alongside (`normalizedLines`) so detection can be verified.
+- **Rule-Based Detection Preserved**: All category rules (npm/pnpm/yarn, Git, Python, Node.js, Next.js, Java, Docker, databases, network, permissions, build errors, command errors, …) remain plain regex tables in `lib/terminalRules.ts`.
 - **Multi-line Block Grouping**: Group header, code frame snippet, and stack trace lines into a single issue entity instead of fragmenting into individual line errors.
 - **Deduplication**: Volatile tokens (timestamps, hex addresses, line numbers, paths) are normalized so recurring terminal errors group into single ranked items with occurrence counts.
