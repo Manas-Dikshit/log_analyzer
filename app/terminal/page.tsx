@@ -272,6 +272,33 @@ export default function TerminalAnalyzerPage() {
                               </div>
                             )}
 
+                            {issue.parsedStack && issue.parsedStack.length > 0 && (
+                              <div>
+                                <h4 className="mb-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-ink/60">
+                                  Structured Stack Frames ({issue.parsedStack.length} frame{issue.parsedStack.length === 1 ? "" : "s"})
+                                </h4>
+                                <pre className="max-h-48 overflow-y-auto overflow-x-auto rounded-lg border border-ink/30 bg-mint/20 p-3 font-mono text-[11.5px] leading-relaxed">
+                                  {issue.parsedStack
+                                    .map((f) => {
+                                      const loc = [f.fileName, f.lineNumber, f.columnNumber].filter((v) => v !== null).join(":");
+                                      return [f.functionName, loc].filter(Boolean).join(" @ ");
+                                    })
+                                    .join("\n")}
+                                </pre>
+                              </div>
+                            )}
+
+                            {issue.normalizedLines && issue.normalizedLines.length > 0 && (
+                              <div>
+                                <h4 className="mb-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-ink/60">
+                                  Normalized Lines (ANSI/VT stripped)
+                                </h4>
+                                <pre className="max-h-60 overflow-y-auto overflow-x-auto rounded-lg border border-ink/30 bg-lav/20 p-3 font-mono text-[12px] leading-relaxed">
+                                  {issue.normalizedLines.join("\n")}
+                                </pre>
+                              </div>
+                            )}
+
                             <div>
                               <h4 className="mb-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-ink/60">
                                 Original Terminal Lines
