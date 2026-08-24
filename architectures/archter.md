@@ -34,9 +34,12 @@ flowchart TD
 | Piece | Location | Role |
 |---|---|---|
 | Rule-based Pattern Library | `lib/terminalRules.ts` | Extensible rules table (`TERMINAL_CATEGORY_RULES`) for 15 error categories, regex patterns, per-rule explanations, extractors for stack frames, file paths, and line numbers. |
-| Multi-line Parsing Engine | `lib/terminalParser.ts` | Multi-line block extractor (`analyzeTerminalOutput`), command context tracking, stack trace grouping, message normalization, and issue ranking. |
+| Multi-line Parsing Engine | `lib/terminalParser.ts` | ANSI/VT normalization, multi-line block extractor (`analyzeTerminalOutput`), command context tracking, structured stack parsing, message normalization, and issue ranking. |
+| ANSI/VT Parser | `@ansi-tools/parser` | Zero-dependency escape-sequence tokenizer (CSI/SGR/OSC/DCS). Feeds the clean-text stream used for detection; originals are preserved verbatim for display. |
+| Stack Trace Parser | `error-stack-parser` (+ `stackframe`) | Structured JS/Node stack-frame extraction (`ParsedStackFrame[]`: function, file, line, column); regex frame detection still applies to non-JS traces. |
 | API Endpoint | `app/api/analyze-terminal/route.ts` | Request validation (15 MB limit); Node.js runtime execution. |
-| Results Dashboard | `app/terminal/page.tsx` | UI rendering stats, category chips, source file/line tags, command tags, collapsible stack trace viewer, and original terminal lines. |
+| Results Dashboard | `app/terminal/page.tsx` | UI rendering stats, category chips, source file/line tags, command tags, collapsible parsed + raw stack trace viewer, normalized vs original terminal lines. |
+| Tests | `tests/terminalAnalyzer.test.ts`, `npm test` | Node built-in test runner (`node:test`) covering ANSI-colored output, JS stack traces, normal errors/warnings, unknown commands, and mixed output. |
 | Shared Components | `components/StatCard`, `components/SeverityChip`, `components/Nav`, `components/Footer` | Reused design components. |
 
 ## Supported Categories & Detection Rules
