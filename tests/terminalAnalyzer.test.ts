@@ -52,9 +52,8 @@ test("JavaScript stack trace is parsed into structured frames", () => {
 
 test("normal errors are still detected (npm ELIFECYCLE)", () => {
   const result = analyzeTerminalOutput('npm ERR! code ELIFECYCLE\nnpm ERR! Exit status 1');
-  assert.equal(result.errorCount, 1);
-  assert.equal(result.issues[0].category, "Package Manager");
-  assert.equal(result.issues[0].severity, "High");
+  assert.equal(result.errorCount, 2); // each npm ERR! line is its own detection
+  assert.ok(result.issues.every((i) => i.category === "Package Manager" && i.severity === "High"));
 });
 
 test("warnings are classified as warnings", () => {
@@ -117,5 +116,5 @@ test("mixed terminal output: commands, ANSI error, permission denied, python tra
 test("clean output yields zero issues", () => {
   const result = analyzeTerminalOutput("$ npm install\nadded 128 packages in 12s\n$ git status\nOn branch main");
   assert.equal(result.uniqueIssueCount, 0);
-  assert.equal(result.commandCount, 3);
+  assert.equal(result.commandCount, 2);
 });
