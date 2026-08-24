@@ -1,6 +1,8 @@
 // Terminal Error Analyzer — rule-based parsing engine.
 // No AI. Pattern matching, regular expressions, and predefined rules only.
 
+import { parse as parseAnsi } from "@ansi-tools/parser";
+import ErrorStackParser from "error-stack-parser";
 import type { Severity } from "./logParser";
 import {
   type TerminalCategory,
