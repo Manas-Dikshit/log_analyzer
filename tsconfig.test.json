@@ -1,12 +1,15 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "node16",
-    "moduleResolution": "node16",
+    "module": "commonjs",
+    "moduleResolution": "node",
     "noEmit": false,
     "outDir": ".test-out",
     "incremental": false,
-    "plugins": []
+    "plugins": [],
+    "paths": {
+      "@ansi-tools/parser": ["./node_modules/@ansi-tools/parser/dist/index.d.mts"]
+    }
   },
   "include": ["lib/**/*.ts", "tests/**/*.ts"]
 }
