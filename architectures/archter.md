@@ -1,7 +1,7 @@
 # Architecture — Terminal Error Analyzer
 
-Rule-based terminal/command output analysis. No AI: regular expressions and ordered rule tables only.
-Shares the visual language and `Severity` type with the Error Log Analyzer; parsing is separate.
+Rule-based terminal and command output analysis. 100% deterministic, local execution without AI: regular expressions, category rule tables, and multi-line block grouping only.
+Shares the visual language and `Severity` type with the Error Log Analyzer; parsing and category classification are separate.
 
 ## Flow
 
@@ -11,35 +11,50 @@ flowchart TD
     B --> C{Validation:<br/>non-empty · size ≤ 15 MB}
     C -- invalid --> C1[4xx JSON error]
     C -- valid --> D["analyzeTerminalOutput(text)<br/>lib/terminalParser.ts"]
-    D --> E{"Per-line classification<br/>(ordered rules)"}
-    E -->|command| F[Command extraction — $ / ❯ / PS> / CMD>]
-    E -->|stack frame| G[Attach to nearest preceding issue]
-    E -->|warning / error| H[Detail extraction:<br/>error type · path · line · timestamp]
-    E -->|other| Z[Counted, not grouped]
-    H --> I["Normalization —<br/>paths → &lt;path&gt; · hex → &lt;addr&gt; · numbers → #"]
-    I --> J[Grouping by kind + normalized message]
-    J --> K[Occurrence counting + first/last line]
-    K --> L["Severity detection — TERMINAL_SEVERITY_RULES<br/>(ordered pattern → severity)"]
-    L --> M[Rank: severity → occurrences → first line]
+    D --> E{"Line classification<br/>& Command Prompt detection"}
+    E -->|command prompt| F["Track Active Command Context<br/>($ / ❯ / PS> / CMD>)"]
+    E -->|pattern match| G["Category Pattern Engine<br/>lib/terminalRules.ts"]
+    G --> H["Multi-line Error Block Extraction<br/>(Header + Code Frames + Stack Trace + Context)"]
+    H --> I["Detail Extraction:<br/>Category · Error Type · Path · Line · Command · Timestamp"]
+    I --> J["Normalization —<br/>paths → &lt;path&gt; · hex → &lt;addr&gt; · numbers → #"]
+    J --> K["Group by Category + Kind + ErrorType + Normalized Message"]
+    K --> L["Occurrence Counting + First/Last Line + Stack Trace Array"]
+    L --> M["Rank: Severity (Critical → High → Medium → Low) → Occurrences → First Line"]
     F --> N["TerminalAnalysisResult JSON<br/>(issues + commands + counters)"]
-    G --> N
     M --> N
-    N --> O["Results UI — app/terminal/page.tsx<br/>(stat cards · commands · ranked issues)"]
+    N --> O["Results UI — app/terminal/page.tsx<br/>(stat cards · commands · category badges · stack traces · raw lines)"]
 ```
 
 ## Key pieces
 
 | Piece | Location | Role |
 |---|---|---|
-| Parsing engine | `lib/terminalParser.ts` | Pure functions: `classifyLine`, `analyzeTerminalOutput`. No I/O. |
-| Severity rules | `TERMINAL_SEVERITY_RULES` in `lib/terminalParser.ts` | Flat, ordered pattern → severity list; first match wins |
-| API endpoint | `app/api/analyze-terminal/route.ts` | Validation boundary; Node.js runtime; JSON body (not FormData) |
-| Page | `app/terminal/page.tsx` | `/terminal` route: paste box, Analyze button, results dashboard |
-| Shared components | `components/StatCard`, `components/SeverityChip`, `components/Nav`, `components/Footer` | Reused unchanged |
+| Rule-based Pattern Library | `lib/terminalRules.ts` | Extensible rules table (`TERMINAL_CATEGORY_RULES`) for 14 error categories, regex patterns, extractors for stack frames, file paths, and line numbers. |
+| Multi-line Parsing Engine | `lib/terminalParser.ts` | Multi-line block extractor (`analyzeTerminalOutput`), command context tracking, stack trace grouping, message normalization, and issue ranking. |
+| API Endpoint | `app/api/analyze-terminal/route.ts` | Request validation (15 MB limit); Node.js runtime execution. |
+| Results Dashboard | `app/terminal/page.tsx` | UI rendering stats, category chips, source file/line tags, command tags, collapsible stack trace viewer, and original terminal lines. |
+| Shared Components | `components/StatCard`, `components/SeverityChip`, `components/Nav`, `components/Footer` | Reused design components. |
 
-## Design constraints
+## Supported Categories & Detection Rules
 
-- Stateless: pasted output is analyzed in-request, never stored.
-- Grouping is deterministic: volatile details (paths, addresses, IDs) are normalized away,
-  so recurring failures collapse into one ranked issue.
-- "Most important first" = severity rank, then occurrence count — not chronological order.
+1. **Runtime Error**: Unhandled JS/TS exceptions, `TypeError`, `ReferenceError`, `SyntaxError`, `RangeError`, Rust panics.
+2. **Build / Compile**: TypeScript `TS\d+` errors, `gcc`/`clang`/`g++` compile errors, Rust `rustc[E\d+]` errors, Webpack / Vite build failures.
+3. **Package Manager**: `npm ERR!`, `yarn error`, `ERR_PNPM_`, `ERESOLVE` dependency conflicts, `ELIFECYCLE` script failures.
+4. **Python**: `Traceback (most recent call last):`, `ModuleNotFoundError`, `ImportError`, `IndentationError`, `SyntaxError`, Python runtime exceptions.
+5. **Java / Maven / Gradle**: `Exception in thread`, `java.lang.*`, `BUILD FAILED`, `Gradle build failed`, Maven `[ERROR]` goals, `ClassNotFoundException`.
+6. **Git**: `fatal: not a git repository`, `fatal: destination path`, `error: failed to push some refs`, `CONFLICT (content):` merge conflicts.
+7. **Next.js / React**: Hydration failures, `Invalid hook call`, `Fast Refresh` reloads, `ChunkLoadError`, Next.js server errors.
+8. **Docker / Container**: `Cannot connect to the Docker daemon`, `Error response from daemon`, build step failures (`failed to solve: process`), container exit codes.
+9. **Database / Connection**: `ECONNREFUSED`, `ECONNRESET`, `MongoNetworkError`, `SequelizeConnectionError`, MySQL / PostgreSQL / Redis / SQLite connection failures.
+10. **Permission / Access**: `EACCES`, `EPERM`, `Permission denied`, `403 Forbidden`, `Access denied for user`, `sudo required`.
+11. **Network / API**: `ETIMEDOUT`, `ENOTFOUND`, `getaddrinfo`, `502 Bad Gateway`, `504 Gateway Timeout`, `500 Internal Server Error`, `fetch failed`, CORS errors.
+12. **Dependency / Module**: `Cannot find module`, `Module not found`, `No module named`, `Could not find a declaration file`.
+13. **Port / Process**: `EADDRINUSE`, `address already in use`, `Segmentation fault`, `heap out of memory`, `SIGKILL`, `SIGSEGV`.
+14. **Warning / Deprecation**: `DeprecationWarning`, `ExperimentalWarning`, `npm WARN`, `Warning: React...`.
+
+## Design Constraints & Guarantees
+
+- **Stateless & Deterministic**: Terminal output is analyzed strictly in-memory during request handling and never stored.
+- **No AI / External API Dependencies**: 100% offline rule-based regex parsing.
+- **Multi-line Block Grouping**: Group header, code frame snippet, and stack trace lines into a single issue entity instead of fragmenting into individual line errors.
+- **Deduplication**: Volatile tokens (timestamps, hex addresses, line numbers, paths) are normalized so recurring terminal errors group into single ranked items with occurrence counts.
