@@ -159,7 +159,10 @@ function matchRule(line: string) {
 }
 
 export function analyzeTerminalOutput(content: string): TerminalAnalysisResult {
+  // Original lines are preserved verbatim for display; ANSI/VT-cleaned
+  // counterparts drive all pattern matching and extraction.
   const lines = content.split(/\r?\n/);
+  const cleanLines = lines.map(stripAnsi);
   const issuesMap = new Map<string, TerminalIssue>();
   const commandsMap = new Map<string, TerminalCommand>();
 
@@ -173,18 +176,19 @@ export function analyzeTerminalOutput(content: string): TerminalAnalysisResult {
   let i = 0;
   while (i < lines.length) {
     const raw = lines[i];
+    const text = cleanLines[i];
     const lineNumber = i + 1;
 
-    if (!raw.trim()) {
+    if (!text.trim()) {
       i++;
       continue;
     }
     totalLines++;
 
     // 1. Check for command prompt lines ($ / ❯ / PS> / CMD>)
-    const promptMatch = raw.match(COMMAND_PROMPT_PATTERN);
+    const promptMatch = text.match(COMMAND_PROMPT_PATTERN);
     if (promptMatch) {
-      const commandText = raw.slice(promptMatch[0].length).trim();
+      const commandText = text.slice(promptMatch[0].length).trim();
       if (commandText) {
         commandCount++;
         activeCommand = commandText;
@@ -200,24 +204,25 @@ export function analyzeTerminalOutput(content: string): TerminalAnalysisResult {
     }
 
     // 2. Check for matching error / warning pattern
-    const ruleMatch = matchRule(raw);
+    const ruleMatch = matchRule(text);
     if (ruleMatch) {
       const { rule, match } = ruleMatch;
       const blockRawLines: string[] = [raw];
       const blockStackTrace: string[] = [];
-      let blockFilePath = extractFilePath(raw);
-      let blockLineNumber = extractLineNumber(raw);
-      const blockTimestamp = extractTimestamp(raw);
-      let blockErrorType = rule.extractErrorType ? rule.extractErrorType(match, raw) : null;
-      let primaryMessage = raw.trim();
+      let blockFilePath = extractFilePath(text);
+      let blockLineNumber = extractLineNumber(text);
+      const blockTimestamp = extractTimestamp(text);
+      let blockErrorType = rule.extractErrorType ? rule.extractErrorType(match, text) : null;
+      let primaryMessage = text.trim();
 
       // Look ahead to capture multi-line context, stack traces, and code frames
       let j = i + 1;
       while (j < lines.length) {
         const nextRaw = lines[j];
-        if (!nextRaw.trim()) {
+        const nextClean = cleanLines[j];
+        if (!nextClean.trim()) {
           // Allow single blank line inside stack trace if next line continues stack frame
-          if (j + 1 < lines.length && (isStackFrameLine(lines[j + 1]) || isCodeFrameLine(lines[j + 1]))) {
+          if (j + 1 < lines.length && (isStackFrameLine(cleanLines[j + 1]) || isCodeFrameLine(cleanLines[j + 1]))) {
             blockRawLines.push(nextRaw);
             j++;
             continue;
@@ -226,11 +231,11 @@ export function analyzeTerminalOutput(content: string): TerminalAnalysisResult {
         }
 
         // Stop if a new command or another error header is encountered
-        if (nextRaw.match(COMMAND_PROMPT_PATTERN)) break;
-        if (matchRule(nextRaw) && !isStackFrameLine(nextRaw) && !isCodeFrameLine(nextRaw)) {
+        if (nextClean.match(COMMAND_PROMPT_PATTERN)) break;
+        if (matchRule(nextClean) && !isStackFrameLine(nextClean) && !isCodeFrameLine(nextClean)) {
           // If Python Traceback started, allow continuing until the final Exception line
           if (rule.category === "Python" && rule.id === "python-traceback-start") {
-            const excMatch = nextRaw.match(/^[A-Za-z_]\w*(?:Error|Exception|Warning):\s*(.*)/);
+            const excMatch = nextClean.match(/^[A-Za-z_]\w*(?:Error|Exception|Warning):\s*(.*)/);
             if (excMatch) {
               blockRawLines.push(nextRaw);
               primaryMessage = nextRaw.trim();
