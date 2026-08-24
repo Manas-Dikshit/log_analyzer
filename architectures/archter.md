@@ -11,18 +11,22 @@ flowchart TD
     B --> C{Validation:<br/>non-empty · size ≤ 15 MB}
     C -- invalid --> C1[4xx JSON error]
     C -- valid --> D["analyzeTerminalOutput(text)<br/>lib/terminalParser.ts"]
-    D --> E{"Line classification<br/>& Command Prompt detection"}
+    D --> D2["ANSI/VT Normalization<br/>@ansi-tools/parser tokenization:<br/>escape sequences stripped, visible text kept<br/>(originals preserved verbatim)"]
+    D2 --> E{"Line/Segment Extraction &<br/>Command Prompt Detection"}
     E -->|command prompt| F["Track Active Command Context<br/>($ / ❯ / PS> / CMD>)"]
-    E -->|pattern match| G["Category Pattern Engine<br/>lib/terminalRules.ts"]
-    G --> H["Multi-line Error Block Extraction<br/>(Header + Code Frames + Stack Trace + Context)"]
-    H --> I["Detail Extraction:<br/>Category · Error Type · Explanation ·<br/>Path · Line · Command · Timestamp"]
+    F --> N["TerminalAnalysisResult JSON<br/>(issues + commands + counters)"]
+    E -->|pattern match| G["Multi-line Error Block Extraction<br/>(Header + Code Frames + Stack Trace + Context)"]
+    G --> G2{"Stack trace present?"}
+    G2 -- yes --> G3["Structured Stack Parsing<br/>error-stack-parser → ParsedStackFrame[]<br/>(functionName · file · line · column)"]
+    G3 --> H["Existing Rule-Based Error Detection<br/>Category Pattern Engine lib/terminalRules.ts"]
+    G2 -- no --> H
+    H --> I["Error Classification — Detail Extraction:<br/>Category · Error Type · Explanation ·<br/>Path · Line · Command · Timestamp"]
     I --> J["Normalization —<br/>paths → &lt;path&gt; · hex → &lt;addr&gt; · numbers → #"]
-    J --> K["Group by Category + Kind + ErrorType + Normalized Message"]
+    J --> K["Grouping / Root-Cause Correlation —<br/>Group by Category + Kind + ErrorType + Normalized Message"]
     K --> L["Occurrence Counting + First/Last Line + Stack Trace Array"]
     L --> M["Rank: Severity (Critical → High → Medium → Low) → Occurrences → First Line"]
-    F --> N["TerminalAnalysisResult JSON<br/>(issues + commands + counters)"]
     M --> N
-    N --> O["Results UI — app/terminal/page.tsx<br/>(stat cards · commands · category badges · stack traces · raw lines)"]
+    N --> O["Results UI — app/terminal/page.tsx<br/>(stat cards · commands · category badges · parsed + raw stack traces · normalized vs original lines)"]
 ```
 
 ## Key pieces
