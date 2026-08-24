@@ -65,8 +65,19 @@ export interface TerminalIssue {
   lastLine: number;
   stackFrames: number;
   stackTrace: string[];
+  parsedStack: ParsedStackFrame[];
   rawLines: string[];
+  normalizedLines: string[];
   sampleRaw: string;
+}
+
+// Structured stack frame extracted by error-stack-parser.
+export interface ParsedStackFrame {
+  functionName: string | null;
+  fileName: string | null;
+  lineNumber: number | null;
+  columnNumber: number | null;
+  source: string;
 }
 
 export interface TerminalCommand {
