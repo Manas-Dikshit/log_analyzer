@@ -250,17 +250,17 @@ export function analyzeTerminalOutput(content: string): TerminalAnalysisResult {
           }
         }
 
-        if (isStackFrameLine(nextRaw)) {
+        if (isStackFrameLine(nextClean)) {
           stackFrameCount++;
-          blockStackTrace.push(nextRaw.trim());
+          blockStackTrace.push(nextClean.trim());
           blockRawLines.push(nextRaw);
-          if (!blockFilePath) blockFilePath = extractFilePath(nextRaw);
-          if (blockLineNumber === null) blockLineNumber = extractLineNumber(nextRaw);
+          if (!blockFilePath) blockFilePath = extractFilePath(nextClean);
+          if (blockLineNumber === null) blockLineNumber = extractLineNumber(nextClean);
           j++;
-        } else if (isCodeFrameLine(nextRaw)) {
+        } else if (isCodeFrameLine(nextClean)) {
           blockRawLines.push(nextRaw);
-          if (!blockFilePath) blockFilePath = extractFilePath(nextRaw);
-          if (blockLineNumber === null) blockLineNumber = extractLineNumber(nextRaw);
+          if (!blockFilePath) blockFilePath = extractFilePath(nextClean);
+          if (blockLineNumber === null) blockLineNumber = extractLineNumber(nextClean);
           j++;
         } else if (
           nextRaw.startsWith(" ") ||
