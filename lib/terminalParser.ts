@@ -312,7 +312,7 @@ export function analyzeTerminalOutput(content: string): TerminalAnalysisResult {
           setIssueLines(existingIssue, blockRawLines);
         }
       } else {
-        issuesMap.set(groupKey, {
+        const issue: TerminalIssue = {
           category: rule.category,
           kind: rule.kind,
           message: primaryMessage,
@@ -332,8 +332,9 @@ export function analyzeTerminalOutput(content: string): TerminalAnalysisResult {
           rawLines: [],
           normalizedLines: [],
           sampleRaw: "",
-        });
-        setIssueLines(issuesMap.get(groupKey)!, blockRawLines);
+        };
+        setIssueLines(issue, blockRawLines);
+        issuesMap.set(groupKey, issue);
       }
 
       i = j; // Advance loop past processed block
