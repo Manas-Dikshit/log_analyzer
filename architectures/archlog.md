@@ -1,7 +1,8 @@
 # Architecture — Error Log Analyzer
 
-Rule-based log file analysis. No AI: regular expressions, ordered rule tables, and
-[`@v0idd0/logparse`](https://www.npmjs.com/package/@v0idd0/logparse) for multi-format detection only.
+Rule-based log file analysis with semantic error clustering. Local embeddings via
+[`@huggingface/transformers`](https://www.npmjs.com/package/@huggingface/transformers)
+(`Xenova/all-MiniLM-L6-v2`), no cloud AI, no paid API.
 
 ## Flow
 
@@ -20,43 +21,65 @@ flowchart TD
     J --> K["Severity detection — SEVERITY_RULES<br/>(ordered pattern → severity)"]
     K --> L["Time-bucket aggregation<br/>(hourly error/warn/info counts)"]
     L --> M["Error frequency ranking<br/>(count + percentage)"]
-    M --> N[AnalysisResult JSON]
-    N --> O["Dashboard UI<br/>components/Dashboard.tsx"]
+    M --> N["AnalysisResult JSON"]
+    N --> O["Semantic analysis — analyzeIssues()<br/>lib/issueAnalyzer.ts"]
+    O --> P["Fingerprinting<br/>lib/fingerprint.ts<br/>(strip dynamic values, detect category/services)"]
+    P --> Q["Embedding generation<br/>lib/embeddings.ts<br/>(all-MiniLM-L6-v2 via @huggingface/transformers)"]
+    Q --> R["Clustering<br/>lib/clustering.ts<br/>(cosine similarity + Union-Find)"]
+    R --> S["Issue model generation<br/>(human-readable titles, confidence scores)"]
+    S --> T["Dashboard UI<br/>components/IssueDashboard.tsx"]
 ```
 
 ## Key pieces
 
 | Piece | Location | Role |
 |---|---|---|
-| Types + severity rules | `lib/logParser.ts` | `LogLevel`, `Severity`, `ErrorGroup`, `AnalysisResult` types; `SEVERITY_RULES` config; fallback `parseLine` (client-safe, no `fs`) |
-| Enhanced analyzer | `lib/logAnalyzer.ts` | Server-only: imports `@v0idd0/logparse` for format detection + structured parsing; applies our severity rules; builds time buckets + frequency ranking. Falls back to `parseLine` for unsupported formats. |
-| API endpoint | `app/api/analyze/route.ts` | Validation boundary; Node.js runtime; accepts `.log`, `.txt`, `.json`, `.jsonl` |
+| Types + severity rules | `lib/logParser.ts` | `LogLevel`, `Severity`, `ErrorGroup`, `AnalysisResult`, `Issue`, `SemanticAnalysisResult` types; `SEVERITY_RULES` config; fallback `parseLine` (client-safe, no `fs`) |
+| Enhanced analyzer | `lib/logAnalyzer.ts` | Server-only: imports `@v0idd0/logparse` for format detection + structured parsing; applies our severity rules; builds time buckets + frequency ranking |
+| Fingerprinting | `lib/fingerprint.ts` | Strips dynamic values (UUIDs, IPs, hex, paths, timestamps, large numbers); detects error categories (Connection, Timeout, Permission, etc.) and affected services |
+| Embedding generation | `lib/embeddings.ts` | Local embedding via `@huggingface/transformers` (`Xenova/all-MiniLM-L6-v2`, 384-dim). Fingerprint-based caching to avoid re-embedding identical messages. Lazy singleton model loading. |
+| Clustering engine | `lib/clustering.ts` | Cosine similarity computation + Union-Find single-linkage clustering. Threshold-based (default 0.72). Modular — swap clustering algorithm without changing pipeline. |
+| Semantic analyzer | `lib/issueAnalyzer.ts` | Full pipeline: ErrorGroup[] → fingerprint → embed → cluster → Issue[]. Generates human-readable titles, categories, confidence scores. Falls back to fingerprint-only grouping if embeddings unavailable. |
+| API endpoint | `app/api/analyze/route.ts` | Validation boundary; Node.js runtime; returns `AnalysisResult` + `SemanticAnalysisResult` |
 | Upload UI | `components/UploadCard.tsx` | Drag-and-drop box + paste box (both wrap input into a `File`) |
-| Results UI | `components/Dashboard.tsx` | Stat cards, format indicator, severity filter, time-bucket summary, ranked error list, detail panel |
-| Detail panel | `components/ErrorDetailPanel.tsx` | Slide-over: severity, level, first/last occurrence, normalized signature, raw sample |
+| Issue dashboard | `components/IssueDashboard.tsx` | Issue-centric results: stat cards, format/semantic indicators, severity filter, time-bucket summary, ranked issue list |
+| Issue detail panel | `components/IssueDetailPanel.tsx` | Slide-over: title, severity, category, confidence, affected services, occurrences, expandable "Technical Details" with related variants and raw samples |
 
-## Parsing pipeline
+## Semantic analysis pipeline
 
 ```
-Raw Log
-  → Format Detection (logparse samples first 50 lines → json/nginx/apache/syslog/text/unknown)
-  → Structured Parsing (logparse.parseLine per line, with fallback to regex parseLine)
-  → Level Mapping (logparse levels → our LogLevel; nginx/apache HTTP status → level)
-  → Message Extraction (JSON fields, request+status for HTTP, raw message for text)
-  → Normalization (logparse.normalizeMessage: UUIDs, IPs, hex, timestamps, numbers)
-  → Error/Warning Detection (level ∈ ERROR | CRITICAL | FATAL)
-  → Grouping (level + normalized message as key → collapses dynamic values)
-  → Severity Classification (SEVERITY_RULES ordered pattern matching)
-  → Time Buckets (hourly aggregation of error/warn/info counts)
-  → Error Frequency (ranked list with count and percentage)
-  → AnalysisResult JSON → Dashboard UI
+ErrorGroup[]
+  → Fingerprinting (lib/fingerprint.ts)
+    → Strip dynamic values: UUIDs, IPs, hex addresses, timestamps, paths, large numbers
+    → Detect error category: Connection, Timeout, Permission, Authentication, etc.
+    → Detect affected services: PostgreSQL, Redis, MongoDB, etc.
+    → Generate normalized fingerprint string for exact-match deduplication
+  → Deduplication (exact fingerprint match)
+  → Embedding generation (lib/embeddings.ts)
+    → all-MiniLM-L6-v2 via @huggingface/transformers (ONNX, 384-dim, ~23MB model)
+    → Fingerprint-based caching (identical fingerprints share one embedding)
+    → Lazy model loading (singleton, downloads once, stays in memory)
+  → Clustering (lib/clustering.ts)
+    → Cosine similarity between all fingerprint embeddings
+    → Union-Find single-linkage clustering (threshold = 0.72)
+    → O(n²) pairwise comparison — acceptable for typical error group counts (< 1000)
+  → Issue model generation (lib/issueAnalyzer.ts)
+    → Human-readable title from category + services
+    → Severity: worst across cluster
+    → Confidence: average pairwise similarity within cluster (or 1.0 for single-fingerprint clusters)
+    → Affected services, related variants, raw samples
+    → Sorted: severity → occurrences → confidence
+  → SemanticAnalysisResult JSON → IssueDashboard UI
 ```
 
 ## Design constraints
 
-- Stateless: logs are parsed for the duration of the request, never stored.
-- Grouping is deterministic: identical messages with different timestamps collapse to one entry.
-- Severity rules are data, not code — extending analysis means editing a list.
-- `lib/logParser.ts` is client-safe (no `fs`); `lib/logAnalyzer.ts` is server-only.
-- Graceful fallback: unrecognized formats fall back to the regex-based `parseLine`.
-- Original log lines are always preserved in `sampleRaw` for verification.
+- **Stateless**: logs are parsed for the duration of the request, never stored.
+- **No cloud AI**: all inference runs locally via ONNX. Model downloaded once from Hugging Face Hub (open-source, no API key).
+- **Modular clustering**: cosine similarity threshold and clustering algorithm are swappable without changing the pipeline.
+- **Graceful fallback**: if embeddings are unavailable, falls back to fingerprint-only grouping.
+- **Deduplication**: identical fingerprints share one embedding (cache/reuse), avoiding redundant computation.
+- **Grouping is deterministic**: identical messages with different timestamps collapse to one entry.
+- **Severity rules are data, not code**: extending analysis means editing a list.
+- **`lib/logParser.ts` is client-safe** (no `fs`); `lib/logAnalyzer.ts`, `lib/fingerprint.ts`, `lib/embeddings.ts`, `lib/clustering.ts`, `lib/issueAnalyzer.ts` are server-only.
+- **Original log lines are always preserved** in `sampleRaw` for verification.
