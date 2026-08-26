@@ -285,7 +285,7 @@ const PillNav: React.FC<PillNavProps> = ({
             style={{
               width: "var(--nav-h)",
               height: "var(--nav-h)",
-              background: "var(--base, #000)",
+              background: "var(--base, #12111A)",
             }}
           >
             <img
@@ -307,7 +307,7 @@ const PillNav: React.FC<PillNavProps> = ({
             style={{
               width: "var(--nav-h)",
               height: "var(--nav-h)",
-              background: "var(--base, #000)",
+              background: "var(--base, #12111A)",
             }}
           >
             <img
