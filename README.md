@@ -4,8 +4,9 @@
 
 **Error Log Analyzer — MVP**
 
-Upload a `.log` / `.txt` file or paste log text directly. Parsed with plain regular
-expressions — grouped, counted, and ranked by severity. No AI involved, by design.
+Upload a `.log` / `.txt` / `.json` / `.jsonl` file or paste log text directly. Parsed with
+`@v0idd0/logparse` for multi-format detection and our own rule-based engine for severity
+classification, grouping, and ranking. No AI involved, by design.
 
 A second tool, the **Terminal Error Analyzer** ([`/terminal`](app/terminal/page.tsx)),
 does the same for pasted terminal/command output: errors, warnings, stack traces, and
@@ -29,11 +30,25 @@ Architecture docs: [`architectures/archlog.md`](architectures/archlog.md) (Log A
 
 | Input | Analysis | Output |
 |---|---|---|
-| Drag-and-drop or click-to-upload `.log` / `.txt` files, plus a bundled sample | Server-side rule-based parsing (`lib/logParser.ts`) — level detection, message normalization, grouping, severity classification | Dashboard: total lines, error / critical / warning counts, unique error count |
-| Side-by-side paste box for raw log text — same endpoint, same analysis | Editable severity rules table (`SEVERITY_RULES`) | Ranked "Top errors" list with occurrence counts and detail panel per error |
+| Drag-and-drop or click-to-upload `.log` / `.txt` / `.json` / `.jsonl` files, plus a bundled sample | Auto-format detection via [`@v0idd0/logparse`](https://www.npmjs.com/package/@v0idd0/logparse): JSON, plain text, Nginx, Apache, Syslog, Python logging | Dashboard: total lines, error / critical / warning counts, unique error count |
+| Side-by-side paste box for raw log text — same endpoint, same analysis | Structured parsing: timestamps, levels, and messages extracted per format | Format detection indicator showing the detected log format |
+| | Dynamic-value normalization: UUIDs, IPs, hex addresses, and numeric IDs collapse for grouping | Severity filter: All / Critical / High / Medium / Low |
+| | Editable severity rules table (`SEVERITY_RULES`) | Time-bucket error counts (hourly) |
+| | Graceful fallback to regex parser for unsupported formats | Error frequency ranking with percentage breakdown |
 
-- Detail panel per error: severity, log level, first/last occurrence, raw sample line
+- Detail panel per error: severity, log level, first/last occurrence, normalized signature, raw sample line
 - Fully responsive, keyboard-accessible, `prefers-reduced-motion` respected
+
+### Supported log formats
+
+| Format | Detection | Level mapping |
+|---|---|---|
+| JSON / JSONL | `{` prefix, parses `level`/`lvl`/`severity` fields | Maps `warning` → `warn`, `critical` → `fatal` |
+| Plain text | Timestamp + level keyword patterns | FATAL, CRITICAL, ERROR, WARNING, WARN, INFO, DEBUG |
+| Nginx combined | IP + timestamp + request + status | 5xx → error, 4xx → warn, else → info |
+| Apache common | IP + timestamp + request + status | Same as Nginx |
+| Syslog RFC 3164 | `<pri>month day host proc[pid]: msg` | Defaults to info |
+| Python logging | `timestamp - logger - LEVEL - msg` | Full level support including CRITICAL |
 
 ### Terminal Error Analyzer (`/terminal`)
 
@@ -90,10 +105,12 @@ app/
   terminal/page.tsx            # Terminal Error Analyzer: paste box + results dashboard
 architectures/                 # Architecture docs for both analyzers
 components/                    # Hero, upload dropzone + paste box, dashboard, detail panel, etc.
-lib/logParser.ts               # Log file parsing engine + severity rules config
+lib/logParser.ts               # Types, severity rules, fallback parser (client-safe)
+lib/logAnalyzer.ts             # Enhanced analyzer with @v0idd0/logparse (server-only)
 lib/terminalRules.ts           # Terminal category rule tables (regex patterns + explanations)
 lib/terminalParser.ts          # Terminal output engine: ANSI normalization (@ansi-tools/parser),
                                #   structured stack parsing (error-stack-parser), rule matching
+tests/logAnalyzer.test.ts      # node:test suite — all log format support, normalization, grouping
 tests/terminalAnalyzer.test.ts # node:test suite — ANSI output, JS stack traces, mixed input
 next.config.mjs                # React strict mode; explicit Turbopack root (this project dir)
 public/sample/application.log  # Sample log used by "Try sample log"
