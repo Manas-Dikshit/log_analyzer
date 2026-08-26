@@ -3,15 +3,17 @@
 import { useCallback, useRef, useState } from "react";
 import { Hero } from "@/components/Hero";
 import { UploadCard } from "@/components/UploadCard";
-import { Dashboard } from "@/components/Dashboard";
+import { IssueDashboard } from "@/components/IssueDashboard";
 import { HowItWorks } from "@/components/HowItWorks";
 import { RulesTable } from "@/components/RulesTable";
 import { FAQ } from "@/components/FAQ";
 import { Footer } from "@/components/Footer";
-import type { AnalysisResult } from "@/lib/logParser";
+import type { AnalysisResult, SemanticAnalysisResult } from "@/lib/logParser";
+
+type EnrichedResult = AnalysisResult & { semantic: SemanticAnalysisResult };
 
 export default function Home() {
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [result, setResult] = useState<EnrichedResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const uploadRef = useRef<HTMLDivElement>(null);
@@ -32,7 +34,7 @@ export default function Home() {
         setError(data.error ?? "Something went wrong while analyzing that file.");
         return;
       }
-      setResult(data as AnalysisResult);
+      setResult(data as EnrichedResult);
       requestAnimationFrame(() => {
         document.getElementById("results")?.scrollIntoView({ behavior: "smooth" });
       });
@@ -59,7 +61,7 @@ export default function Home() {
         <UploadCard onAnalyze={handleAnalyze} isAnalyzing={isAnalyzing} errorMessage={error} />
       </div>
 
-      {result && <Dashboard result={result} onReset={handleReset} />}
+      {result && <IssueDashboard result={result} onReset={handleReset} />}
 
       <HowItWorks />
       <RulesTable />
