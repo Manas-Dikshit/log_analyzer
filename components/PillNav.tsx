@@ -260,6 +260,10 @@ const PillNav: React.FC<PillNavProps> = ({
     ["--pill-bg"]: pillColor,
     ["--hover-text"]: hoveredPillTextColor,
     ["--pill-text"]: resolvedPillTextColor,
+    ["--nav-h"]: "42px",
+    ["--logo"]: "36px",
+    ["--pill-pad-x"]: "18px",
+    ["--pill-gap"]: "3px",
   } as React.CSSProperties;
 
   return (
