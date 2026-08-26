@@ -376,7 +376,7 @@ const PillNav: React.FC<PillNavProps> = ({
                   {isActive && (
                     <span
                       className="absolute left-1/2 -bottom-[6px] -translate-x-1/2 w-3 h-3 rounded-full z-[4]"
-                      style={{ background: "var(--base, #000)" }}
+                      style={{ background: "var(--base, #12111A)" }}
                       aria-hidden="true"
                     />
                   )}
@@ -428,16 +428,16 @@ const PillNav: React.FC<PillNavProps> = ({
           style={{
             width: "var(--nav-h)",
             height: "var(--nav-h)",
-            background: "var(--base, #000)",
+            background: "var(--base, #12111A)",
           }}
         >
           <span
             className="hamburger-line w-4 h-0.5 rounded origin-center transition-all duration-[10ms] ease-[cubic-bezier(0.25,0.1,0.25,1)]"
-            style={{ background: "var(--pill-bg, #fff)" }}
+            style={{ background: "var(--pill-bg, #FBFAF7)" }}
           />
           <span
             className="hamburger-line w-4 h-0.5 rounded origin-center transition-all duration-[10ms] ease-[cubic-bezier(0.25,0.1,0.25,1)]"
-            style={{ background: "var(--pill-bg, #fff)" }}
+            style={{ background: "var(--pill-bg, #FBFAF7)" }}
           />
         </button>
       </nav>
