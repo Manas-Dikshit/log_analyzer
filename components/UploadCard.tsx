@@ -84,7 +84,7 @@ export function UploadCard({ onAnalyze, isAnalyzing, errorMessage }: UploadCardP
         <input
           ref={inputRef}
           type="file"
-          accept=".log,.txt"
+          accept=".log,.txt,.json,.jsonl"
           className="hidden"
           onChange={(e) => acceptFile(e.target.files?.[0])}
         />
