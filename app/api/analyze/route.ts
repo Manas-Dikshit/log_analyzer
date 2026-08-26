@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeLog } from "@/lib/logAnalyzer";
+import { analyzeIssues } from "@/lib/issueAnalyzer";
 
 export const runtime = "nodejs";
 
@@ -46,7 +47,14 @@ export async function POST(req: NextRequest) {
     }
 
     const result = analyzeLog(content, file.name);
-    return NextResponse.json(result, { status: 200 });
+
+    // Semantic analysis: fingerprint → embed → cluster → issues
+    const semantic = await analyzeIssues(result.errors);
+
+    return NextResponse.json(
+      { ...result, semantic },
+      { status: 200 }
+    );
   } catch (err) {
     console.error("analyze route error", err);
     return NextResponse.json(

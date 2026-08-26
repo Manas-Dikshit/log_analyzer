@@ -101,6 +101,30 @@ export interface AnalysisResult {
   processedAt: string;
 }
 
+export interface Issue {
+  title: string;
+  category: string;
+  severity: Severity;
+  message: string;
+  occurrences: number;
+  firstSeen: string | null;
+  lastSeen: string | null;
+  affectedServices: string[];
+  representativeError: ErrorGroup;
+  relatedErrors: ErrorGroup[];
+  rawSamples: string[];
+  confidence: number;
+  isHighConfidence: boolean;
+  fingerprint: string;
+}
+
+export interface SemanticAnalysisResult {
+  issues: Issue[];
+  embeddingAvailable: boolean;
+  fingerprintCount: number;
+  clusterCount: number;
+}
+
 export function normalizeLevel(raw: string | undefined): LogLevel {
   if (!raw) return "UNKNOWN";
   const upper = raw.toUpperCase();
