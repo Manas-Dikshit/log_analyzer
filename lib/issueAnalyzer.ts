@@ -2,51 +2,10 @@
 // Fingerprint → Embedding → Cluster → Issue Model.
 // No cloud AI. No paid API. Local embeddings via @huggingface/transformers.
 
-import type { ErrorGroup, Severity, Issue, SemanticAnalysisResult } from "./logParser";
+import type { ErrorGroup, Issue, SemanticAnalysisResult, Severity } from "./logParser";
 import { generateFingerprint } from "./fingerprint";
 import { embedBatch, isEmbedderReady } from "./embeddings";
 import { clusterBySimilarity, cosineSimilarity } from "./clustering";
-
-export interface Issue {
-  /** Human-readable title, e.g. "Database Connection / Pool Exhaustion" */
-  title: string;
-  /** Auto-detected category */
-  category: string;
-  /** Severity (Critical / High / Medium / Low) */
-  severity: Severity;
-  /** Human-readable description */
-  message: string;
-  /** Total occurrences across all grouped errors */
-  occurrences: number;
-  /** First seen timestamp */
-  firstSeen: string | null;
-  /** Last seen timestamp */
-  lastSeen: string | null;
-  /** Affected services/infrastructure components */
-  affectedServices: string[];
-  /** The representative (most-occurring) ErrorGroup */
-  representativeError: ErrorGroup;
-  /** Related ErrorGroups in this cluster */
-  relatedErrors: ErrorGroup[];
-  /** Raw sample lines for technical details */
-  rawSamples: string[];
-  /** Confidence score (0-1) for the clustering */
-  confidence: number;
-  /** Whether this is a high-confidence cluster */
-  isHighConfidence: boolean;
-  /** Normalized fingerprint for this issue */
-  fingerprint: string;
-}
-
-export interface SemanticAnalysisResult {
-  issues: Issue[];
-  /** Whether the embedding model was available */
-  embeddingAvailable: boolean;
-  /** Number of unique fingerprints before clustering */
-  fingerprintCount: number;
-  /** Number of clusters after semantic grouping */
-  clusterCount: number;
-}
 
 // Category title generation: maps internal category + services to a readable title
 function generateTitle(
