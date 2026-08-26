@@ -6,12 +6,7 @@ import { analyzeLog } from "../lib/logAnalyzer";
 import {
   parseLine,
   classifySeverity,
-  normalizeLevel,
-  normalizeMessageLocal,
-  SEVERITY_RULES,
 } from "../lib/logParser";
-
-const FIXTURES = join(__dirname, "../public/sample");
 
 // ─── 1. Existing plain-text log (sample application.log) ───────────────────
 describe("Existing plain-text log support", () => {

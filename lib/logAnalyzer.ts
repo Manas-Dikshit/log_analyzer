@@ -13,7 +13,6 @@ import {
   type ErrorFrequency,
   type AnalysisResult,
   normalizeLevel,
-  normalizeMessageLocal,
   classifySeverity,
   parseLine,
 } from "./logParser";
