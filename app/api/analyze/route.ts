@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeLog } from "@/lib/logParser";
+import { analyzeLog } from "@/lib/logAnalyzer";
 
 export const runtime = "nodejs";
 
@@ -18,9 +18,14 @@ export async function POST(req: NextRequest) {
     }
 
     const name = file.name.toLowerCase();
-    if (!name.endsWith(".log") && !name.endsWith(".txt")) {
+    if (
+      !name.endsWith(".log") &&
+      !name.endsWith(".txt") &&
+      !name.endsWith(".json") &&
+      !name.endsWith(".jsonl")
+    ) {
       return NextResponse.json(
-        { error: "Only .log and .txt files are supported." },
+        { error: "Only .log, .txt, .json, and .jsonl files are supported." },
         { status: 400 }
       );
     }
