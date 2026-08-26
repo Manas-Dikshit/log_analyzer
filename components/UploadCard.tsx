@@ -95,8 +95,9 @@ export function UploadCard({ onAnalyze, isAnalyzing, errorMessage }: UploadCardP
               <UploadCloud size={24} strokeWidth={2} />
             </div>
             <p className="font-medium text-ink/80">
-              Drag a <span className="font-mono text-ink">.log</span> or{" "}
-              <span className="font-mono text-ink">.txt</span> file here
+              Drag a <span className="font-mono text-ink">.log</span>,{" "}
+              <span className="font-mono text-ink">.txt</span>, or{" "}
+              <span className="font-mono text-ink">.json</span> file here
             </p>
             <p className="mt-1 text-[13px] text-ink/45">or</p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
