@@ -447,22 +447,22 @@ const PillNav: React.FC<PillNavProps> = ({
         className="md:hidden absolute top-[4.5em] left-6 right-6 sm:left-10 sm:right-10 rounded-[27px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-[998] origin-top"
         style={{
           ...cssVars,
-          background: "var(--base, #f0f0f0)",
+          background: "var(--base, #12111A)",
         }}
       >
         <ul className="list-none m-0 p-[3px] flex flex-col gap-[3px]">
           {items.map((item) => {
             const defaultStyle: React.CSSProperties = {
-              background: "var(--pill-bg, #fff)",
-              color: "var(--pill-text, #fff)",
+              background: "var(--pill-bg, #FBFAF7)",
+              color: "var(--pill-text, #12111A)",
             };
             const hoverIn = (e: React.MouseEvent<HTMLAnchorElement>) => {
               e.currentTarget.style.background = "var(--base)";
-              e.currentTarget.style.color = "var(--hover-text, #fff)";
+              e.currentTarget.style.color = "var(--hover-text, #FBFAF7)";
             };
             const hoverOut = (e: React.MouseEvent<HTMLAnchorElement>) => {
-              e.currentTarget.style.background = "var(--pill-bg, #fff)";
-              e.currentTarget.style.color = "var(--pill-text, #fff)";
+              e.currentTarget.style.background = "var(--pill-bg, #FBFAF7)";
+              e.currentTarget.style.color = "var(--pill-text, #12111A)";
             };
 
             const linkClasses =
