@@ -1,7 +1,7 @@
 "use client";
 
 import { TerminalPreview } from "./TerminalPreview";
-import { Nav } from "./Nav";
+import PillNav from "./PillNav";
 import { ArrowRight } from "lucide-react";
 
 export function Hero({ onScrollToUpload }: { onScrollToUpload: () => void }) {
@@ -10,7 +10,21 @@ export function Hero({ onScrollToUpload }: { onScrollToUpload: () => void }) {
       id="top"
       className="flex min-h-screen flex-col bg-ink text-paper"
     >
-      <Nav />
+      <PillNav
+        logo="/LogLine-icon.png"
+        logoAlt="LogLine logo"
+        items={[
+          { label: "How it works", href: "#how" },
+          { label: "Severity rules", href: "#rules" },
+          { label: "FAQ", href: "#faq" },
+          { label: "Terminal analyzer", href: "/terminal" },
+        ]}
+        baseColor="#12111A"
+        pillColor="#FBFAF7"
+        pillTextColor="#12111A"
+        hoveredPillTextColor="#FBFAF7"
+        initialLoadAnimation={false}
+      />
 
       <div className="mx-auto flex flex-1 flex-col justify-center px-6 py-12 sm:px-10 lg:max-w-6xl lg:grid lg:grid-cols-[0.48fr_0.52fr] lg:items-center lg:gap-16 lg:py-0">
         {/* ── Text column ──────────────────────────── */}

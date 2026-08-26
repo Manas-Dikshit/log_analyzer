@@ -17,7 +17,7 @@ import { clsx } from "clsx";
 import type { TerminalAnalysisResult, TerminalIssue } from "@/lib/terminalParser";
 import { StatCard } from "@/components/StatCard";
 import { SeverityChip } from "@/components/SeverityChip";
-import { Nav } from "@/components/Nav";
+import PillNav from "@/components/PillNav";
 import { Footer } from "@/components/Footer";
 
 export default function TerminalAnalyzerPage() {
@@ -62,7 +62,18 @@ export default function TerminalAnalyzerPage() {
 
   return (
     <main className="min-h-screen">
-      <Nav />
+      <PillNav
+        logo="/LogLine-icon.png"
+        logoAlt="LogLine logo"
+        items={[
+          { label: "Log analyzer", href: "/" },
+        ]}
+        baseColor="#FBFAF7"
+        pillColor="#12111A"
+        pillTextColor="#FBFAF7"
+        hoveredPillTextColor="#12111A"
+        initialLoadAnimation={false}
+      />
 
       <section className="mx-auto max-w-3xl px-6 pt-14 pb-10 text-center sm:px-10">
         <p className="mb-3 font-mono text-[12px] font-bold uppercase tracking-[0.18em] text-ink/45">
