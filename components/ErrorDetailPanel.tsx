@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Hash, Clock, ClockArrowUp, Tag } from "lucide-react";
+import { X, Hash, Clock, ClockArrowUp, Tag, Fingerprint } from "lucide-react";
 import type { ErrorGroup } from "@/lib/logParser";
 import { SeverityChip } from "./SeverityChip";
 
@@ -52,7 +52,11 @@ export function ErrorDetailPanel({
             </div>
 
             <dl className="mt-8 space-y-5">
-              <DetailRow icon={Hash} label="Occurrences" value={error.occurrences.toLocaleString()} />
+              <DetailRow
+                icon={Hash}
+                label="Occurrences"
+                value={error.occurrences.toLocaleString()}
+              />
               <DetailRow icon={Tag} label="Log level" value={error.level} mono />
               <DetailRow
                 icon={Clock}
@@ -66,6 +70,14 @@ export function ErrorDetailPanel({
                 value={error.lastOccurrence ?? "Not captured in file"}
                 mono
               />
+              {error.normalizedMessage !== error.message && (
+                <DetailRow
+                  icon={Fingerprint}
+                  label="Normalized"
+                  value={error.normalizedMessage}
+                  mono
+                />
+              )}
             </dl>
 
             <div className="mt-8">
@@ -73,7 +85,7 @@ export function ErrorDetailPanel({
                 Sample raw line
               </p>
               <pre className="scroll-thin overflow-x-auto rounded-xl border border-ink bg-ink p-4 font-mono text-[12px] leading-relaxed text-mint">
-{error.sampleRaw}
+                {error.sampleRaw}
               </pre>
             </div>
           </motion.aside>
@@ -99,7 +111,13 @@ function DetailRow({
       <dt className="flex items-center gap-2 text-[13px] font-medium text-ink/55">
         <Icon size={14} /> {label}
       </dt>
-      <dd className={mono ? "font-mono text-[13.5px] font-semibold" : "text-[14px] font-semibold"}>
+      <dd
+        className={
+          mono
+            ? "max-w-[60%] truncate font-mono text-[13.5px] font-semibold"
+            : "text-[14px] font-semibold"
+        }
+      >
         {value}
       </dd>
     </div>
