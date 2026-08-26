@@ -6,7 +6,9 @@
 
 Upload a `.log` / `.txt` / `.json` / `.jsonl` file or paste log text directly. Parsed with
 `@v0idd0/logparse` for multi-format detection and our own rule-based engine for severity
-classification, grouping, and ranking. No AI involved, by design.
+classification, grouping, and ranking. Errors are then semantically clustered using local
+embeddings (`@huggingface/transformers` + `Xenova/all-MiniLM-L6-v2`) into human-friendly
+issues — no cloud AI, no paid API.
 
 A second tool, the **Terminal Error Analyzer** ([`/terminal`](app/terminal/page.tsx)),
 does the same for pasted terminal/command output: errors, warnings, stack traces, and
@@ -30,11 +32,13 @@ Architecture docs: [`architectures/archlog.md`](architectures/archlog.md) (Log A
 
 | Input | Analysis | Output |
 |---|---|---|
-| Drag-and-drop or click-to-upload `.log` / `.txt` / `.json` / `.jsonl` files, plus a bundled sample | Auto-format detection via [`@v0idd0/logparse`](https://www.npmjs.com/package/@v0idd0/logparse): JSON, plain text, Nginx, Apache, Syslog, Python logging | Dashboard: total lines, error / critical / warning counts, unique error count |
+| Drag-and-drop or click-to-upload `.log` / `.txt` / `.json` / `.jsonl` files, plus a bundled sample | Auto-format detection via [`@v0idd0/logparse`](https://www.npmjs.com/package/@v0idd0/logparse): JSON, plain text, Nginx, Apache, Syslog, Python logging | Dashboard: total lines, error / critical / warning counts, unique error count, issue count |
 | Side-by-side paste box for raw log text — same endpoint, same analysis | Structured parsing: timestamps, levels, and messages extracted per format | Format detection indicator showing the detected log format |
 | | Dynamic-value normalization: UUIDs, IPs, hex addresses, and numeric IDs collapse for grouping | Severity filter: All / Critical / High / Medium / Low |
 | | Editable severity rules table (`SEVERITY_RULES`) | Time-bucket error counts (hourly) |
 | | Graceful fallback to regex parser for unsupported formats | Error frequency ranking with percentage breakdown |
+| | **Semantic clustering**: fingerprinting → local embeddings (all-MiniLM-L6-v2) → cosine similarity → Union-Find clustering | **Issue-centric view**: human-readable titles, categories, confidence scores, related error variants |
+| | | Expandable "Technical Details" section with raw samples, related variants, fingerprints |
 
 - Detail panel per error: severity, log level, first/last occurrence, normalized signature, raw sample line
 - Fully responsive, keyboard-accessible, `prefers-reduced-motion` respected
@@ -68,7 +72,8 @@ Architecture docs: [`architectures/archlog.md`](architectures/archlog.md) (Log A
 - Ranked "Most important issues" list — severity first, then occurrence count — with an
   expandable detail view per row: structured frames, normalized lines, and raw terminal lines
 
-Both analyzers are fully rule-based — no AI and no external APIs.
+Both analyzers use rule-based detection. The Log Analyzer additionally uses local embeddings
+for semantic error clustering — all inference runs on-device, no cloud AI required.
 
 ## Tech stack
 
@@ -99,19 +104,24 @@ npm test
 
 ```text
 app/
-  api/analyze/route.ts         # POST endpoint — receives a file, returns AnalysisResult JSON
+  api/analyze/route.ts         # POST endpoint — receives a file, returns AnalysisResult + semantic issues
   api/analyze-terminal/route.ts # POST endpoint — receives pasted terminal output (JSON)
   page.tsx                     # Landing + upload + results, single-page flow
   terminal/page.tsx            # Terminal Error Analyzer: paste box + results dashboard
 architectures/                 # Architecture docs for both analyzers
 components/                    # Hero, upload dropzone + paste box, dashboard, detail panel, etc.
-lib/logParser.ts               # Types, severity rules, fallback parser (client-safe)
+lib/logParser.ts               # Types (incl. Issue, SemanticAnalysisResult), severity rules, fallback parser
 lib/logAnalyzer.ts             # Enhanced analyzer with @v0idd0/logparse (server-only)
+lib/fingerprint.ts             # Advanced fingerprinting: strips dynamic values, detects categories/services
+lib/embeddings.ts              # Local embedding generation via @huggingface/transformers (all-MiniLM-L6-v2)
+lib/clustering.ts              # Union-Find clustering with cosine similarity threshold
+lib/issueAnalyzer.ts           # Semantic analysis pipeline: fingerprint → embed → cluster → Issue model
 lib/terminalRules.ts           # Terminal category rule tables (regex patterns + explanations)
-lib/terminalParser.ts          # Terminal output engine: ANSI normalization (@ansi-tools/parser),
-                               #   structured stack parsing (error-stack-parser), rule matching
+lib/terminalParser.ts          # Terminal output engine: ANSI normalization, structured stack parsing, rule matching
 tests/logAnalyzer.test.ts      # node:test suite — all log format support, normalization, grouping
 tests/terminalAnalyzer.test.ts # node:test suite — ANSI output, JS stack traces, mixed input
+tests/fingerprint.test.ts      # node:test suite — fingerprinting, category detection, service extraction
+tests/clustering.test.ts       # node:test suite — cosine similarity, Union-Find clustering, centroid
 next.config.mjs                # React strict mode; explicit Turbopack root (this project dir)
 public/sample/application.log  # Sample log used by "Try sample log"
 ```
@@ -144,9 +154,10 @@ npm run start
 
 ## What is intentionally not in this MVP
 
-Per the product spec: no AI-based explanations, no authentication, no real-time monitoring,
+Per the product spec: no cloud AI, no authentication, no real-time monitoring,
 no cloud log integrations, and no persistence layer. Logs are parsed for the length of the
-request and never stored.
+request and never stored. Semantic analysis runs locally via `@huggingface/transformers`
+(ONNX inference on-device, model downloaded once from Hugging Face Hub on first request).
 
 ---
 
