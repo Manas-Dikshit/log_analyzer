@@ -324,7 +324,7 @@ const PillNav: React.FC<PillNavProps> = ({
           className="relative items-center rounded-full hidden md:flex ml-2"
           style={{
             height: "var(--nav-h)",
-            background: "var(--base, #000)",
+            background: "var(--base, #12111A)",
           }}
         >
           <ul
@@ -336,8 +336,8 @@ const PillNav: React.FC<PillNavProps> = ({
               const isActive = activeHref === item.href;
 
               const pillStyle: React.CSSProperties = {
-                background: "var(--pill-bg, #fff)",
-                color: "var(--pill-text, var(--base, #000))",
+                background: "var(--pill-bg, #FBFAF7)",
+                color: "var(--pill-text, var(--base, #12111A))",
                 paddingLeft: "var(--pill-pad-x)",
                 paddingRight: "var(--pill-pad-x)",
               };
@@ -347,7 +347,7 @@ const PillNav: React.FC<PillNavProps> = ({
                   <span
                     className="hover-circle absolute left-1/2 bottom-0 rounded-full z-[1] block pointer-events-none"
                     style={{
-                      background: "var(--base, #000)",
+                      background: "var(--base, #12111A)",
                       willChange: "transform",
                     }}
                     aria-hidden="true"
@@ -365,7 +365,7 @@ const PillNav: React.FC<PillNavProps> = ({
                     <span
                       className="pill-label-hover absolute left-0 top-0 z-[3] inline-block"
                       style={{
-                        color: "var(--hover-text, #fff)",
+                        color: "var(--hover-text, #FBFAF7)",
                         willChange: "transform, opacity",
                       }}
                       aria-hidden="true"
