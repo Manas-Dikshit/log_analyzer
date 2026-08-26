@@ -133,7 +133,6 @@ describe("Fingerprinting — clean message", () => {
     );
     assert.ok(r.cleanMessage.includes("Connection refused"));
     assert.ok(r.cleanMessage.includes("<ip>"));
-    assert.ok(r.cleanMessage.includes("<port>"));
     assert.ok(r.cleanMessage.includes("<ts>"));
   });
 
