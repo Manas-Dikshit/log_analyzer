@@ -25,7 +25,7 @@ export function UploadCard({ onAnalyze, isAnalyzing, errorMessage }: UploadCardP
 
   const acceptFile = useCallback((f: File | undefined | null) => {
     if (!f) return;
-    const okExt = /\.(log|txt)$/i.test(f.name);
+    const okExt = /\.(log|txt|json|jsonl)$/i.test(f.name);
     if (!okExt) return;
     setFile(f);
   }, []);
